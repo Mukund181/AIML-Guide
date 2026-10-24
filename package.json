@@ -1,0 +1,20 @@
+{
+  "name": "aiml-study-guide",
+  "version": "1.0.0",
+  "description": "Comprehensive AI/ML Complete Study Guide",
+  "scripts": {
+    "build": "node build.js",
+    "dev": "node watch.js",
+    "build:py": "python build.py",
+    "dev:py": "python watch.py"
+  },
+  "keywords": [
+    "ai",
+    "machine-learning",
+    "deep-learning",
+    "pytorch",
+    "python"
+  ],
+  "author": "Mukund",
+  "license": "MIT"
+}

@@ -1,0 +1,1061 @@
+<!-- ============================== CHAPTER 6: DEEP LEARNING & PYTORCH ============================== -->
+  <div class="chapter ch6" id="ch6">
+    <div class="chapter-header">
+      <div class="chapter-num">06</div>
+      <div>
+        <h2>Deep Learning &amp; PyTorch</h2>
+        <div class="chapter-sub">Phase 3 (Weeks 7–9) · Neural Networks, Autograd, CNNs, Transformers &amp; Production Serving</div>
+        <div style="margin-top: 8px;">
+          <span class="tag dl">Weeks 7–9</span>
+          <span class="tag ml">PyTorch Primary</span>
+          <span class="tag new">Deliverable: Train &amp; Serve</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALLOUT: PHASE 3 STRATEGY -->
+    <div class="info-box note">
+      <strong>Deep Learning Strategy Rule</strong>
+      Do not try to master both TensorFlow and PyTorch at once. <strong>PyTorch is your primary deep-learning framework</strong> — it dominates modern AI research, Hugging Face, LLM architectures, and cutting-edge vision models. Learn PyTorch deeply for model building, training, and deployment; learn to <em>read</em> TensorFlow/Keras code when inspecting legacy codebases or research papers.
+    </div>
+
+    <!-- ==================== SECTION 1: PERCEPTRONS & ACTIVATIONS ==================== -->
+    <div class="section" id="dl-perceptrons">
+      <h3>Perceptrons, Multilayer Networks &amp; Activation Functions</h3>
+      <p>Deep learning is built upon layers of interconnected computational units. Understanding how a single unit computes and why multiple units create universal function approximators is the foundation of all modern deep learning.</p>
+
+      <h4>1. The Perceptron — The Atomic Unit</h4>
+      <p>Invented by Frank Rosenblatt in 1958, the <strong>Perceptron</strong> is the simplest artificial neuron. It takes numerical inputs, computes a weighted sum, adds a bias, and passes the result through an activation function.</p>
+      
+      <div class="formula">z = \sum_{i=1}^d w_i x_i + b = \mathbf{w}^T \mathbf{x} + b \quad \longrightarrow \quad \hat{y} = f(z)</div>
+
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="cc-icon">⚖️</div>
+          <h4>Weights (\(\mathbf{w}\))</h4>
+          <p>Determine the importance/strength of each input feature. Positive weights amplify the signal; negative weights suppress it.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">🎯</div>
+          <h4>Bias (\(b\))</h4>
+          <p>Controls the firing threshold of the neuron independent of the inputs. Without bias, the decision boundary must pass strictly through the origin.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">⚡</div>
+          <h4>The XOR Problem</h4>
+          <p>A single perceptron creates a <strong>linear decision boundary</strong>. It can solve AND, OR, and NOT, but fails on XOR (exclusive OR) because XOR is non-linearly separable (Minsky &amp; Papert, 1969).</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">🌐</div>
+          <h4>Multilayer Perceptron (MLP)</h4>
+          <p>By adding <em>hidden layers</em> between input and output, networks can bend and fold space to solve arbitrarily complex non-linear problems.</p>
+        </div>
+      </div>
+
+      <h4>2. The Universal Approximation Theorem</h4>
+      <p>The <strong>Universal Approximation Theorem</strong> (Cybenko 1989, Hornik 1991) proves that a standard feedforward neural network with just a <em>single hidden layer</em> containing a finite number of neurons and non-linear activations can approximate any continuous function on compact subsets of \(\mathbb{R}^n\) to arbitrary accuracy. Why then go "Deep"? Because deeper networks can represent exponentially more complex hierarchical features with far fewer total parameters than a single impossibly wide shallow layer.</p>
+
+      <h4>3. Why Activation Functions Are Mandatory</h4>
+      <div class="info-box warn">
+        <strong>The Linearity Trap</strong>
+        If you do not use non-linear activation functions, stacking 100 dense layers is mathematically equivalent to a <strong>single linear transformation</strong>:
+        <br>
+        \(\mathbf{y} = \mathbf{W}_2 (\mathbf{W}_1 \mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2 = (\mathbf{W}_2 \mathbf{W}_1)\mathbf{x} + (\mathbf{W}_2 \mathbf{b}_1 + \mathbf{b}_2) = \mathbf{W}' \mathbf{x} + \mathbf{b}'\)
+        <br>
+        Without non-linear activations, a 100-layer deep neural network is just Linear Regression!
+      </div>
+
+      <h4>4. Activation Functions Comparison</h4>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Activation</th>
+              <th>Mathematical Equation</th>
+              <th>Output Range</th>
+              <th>Gradient Characteristics</th>
+              <th>Primary Use Cases</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Sigmoid</strong></td>
+              <td>\(\sigma(z) = \frac{1}{1 + e^{-z}}\)</td>
+              <td>\((0, 1)\)</td>
+              <td>Max derivative is 0.25. Causes <strong>severe vanishing gradients</strong> in deep layers; outputs are not zero-centered.</td>
+              <td>Binary classification output layer.</td>
+            </tr>
+            <tr>
+              <td><strong>Tanh</strong></td>
+              <td>\(\tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}}\)</td>
+              <td>\((-1, 1)\)</td>
+              <td>Zero-centered. Gradients still saturate and vanish for \(|z| > 2\).</td>
+              <td>Hidden layers in classical RNNs and LSTMs.</td>
+            </tr>
+            <tr>
+              <td><strong>ReLU</strong></td>
+              <td>\(f(z) = \max(0, z)\)</td>
+              <td>\([0, \infty)\)</td>
+              <td>Gradient is 1 for \(z > 0\), eliminating vanishing gradients. Suffers from <strong>Dying ReLU</strong> if weights receive large negative updates.</td>
+              <td>Standard default for hidden layers in CNNs and MLPs.</td>
+            </tr>
+            <tr>
+              <td><strong>Leaky ReLU</strong></td>
+              <td>\(f(z) = \max(\alpha z, z), \alpha \approx 0.01\)</td>
+              <td>\((-\infty, \infty)\)</td>
+              <td>Small slope \(\alpha\) when \(z < 0\) prevents dead neurons; gradient never completely reaches zero.</td>
+              <td>When dying neurons occur during ReLU training (e.g. GANs).</td>
+            </tr>
+            <tr>
+              <td><strong>GELU</strong></td>
+              <td>\(z \cdot \Phi(z) \approx 0.5z(1 + \tanh(\sqrt{\frac{2}{\pi}}(z + 0.044715z^3)))\)</td>
+              <td>\((-0.17, \infty)\)</td>
+              <td>Smooth probabilistic gating. No sharp discontinuity at zero; non-monotonic curve.</td>
+              <td>Modern standard for <strong>Transformers, BERT, GPT-3/4, ViT, LLaMA</strong>.</td>
+            </tr>
+            <tr>
+              <td><strong>Softmax</strong></td>
+              <td>\(\sigma(\mathbf{z})_i = \frac{e^{z_i}}{\sum_{j=1}^K e^{z_j}}\)</td>
+              <td>\((0, 1), \sum=1\)</td>
+              <td>Converts unnormalized raw logit scores into valid probabilities across \(K\) mutually exclusive classes.</td>
+              <td>Final output layer for multi-class classification.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>activations_pytorch.py</span>
+        </div>
+        <pre><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+
+x = torch.<span class="fn">tensor</span>([-<span class="nu">2.0</span>, -<span class="nu">0.5</span>, <span class="nu">0.0</span>, <span class="nu">0.5</span>, <span class="nu">2.0</span>])
+
+<span class="cm"># Common activations in PyTorch</span>
+relu = nn.<span class="cl">ReLU</span>()
+leaky = nn.<span class="cl">LeakyReLU</span>(negative_slope=<span class="nu">0.01</span>)
+gelu = nn.<span class="cl">GELU</span>()
+sigmoid = nn.<span class="cl">Sigmoid</span>()
+softmax = nn.<span class="cl">Softmax</span>(dim=-<span class="nu">1</span>)
+
+<span class="fn">print</span>(<span class="st">"Input:     "</span>, x)
+<span class="fn">print</span>(<span class="st">"ReLU:      "</span>, relu(x))
+<span class="fn">print</span>(<span class="st">"LeakyReLU: "</span>, leaky(x))
+<span class="fn">print</span>(<span class="st">"GELU:      "</span>, gelu(x))
+<span class="fn">print</span>(<span class="st">"Sigmoid:   "</span>, sigmoid(x))
+<span class="fn">print</span>(<span class="st">"Softmax:   "</span>, softmax(x))</pre>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 2: FORWARD, BACKPROP & COMPUTATIONAL GRAPHS ==================== -->
+    <div class="section" id="dl-backprop">
+      <h3>Forward Propagation, Backpropagation &amp; Computational Graphs</h3>
+      <p>Training a neural network consists of three fundamental phases: computing predictions (<strong>Forward Pass</strong>), measuring discrepancies via a loss function, and calculating exact partial derivatives of that loss with respect to every weight and bias via the chain rule (<strong>Backpropagation</strong>).</p>
+
+      <h4>1. The Forward Pass</h4>
+      <p>For a network with \(L\) layers, the forward pass computes layer representations sequentially:</p>
+      <div class="pipeline">
+        <div class="pipe-step"><div class="pipe-box" style="border-color:#7c6ff7;color:#7c6ff7">Input \(\mathbf{x} = \mathbf{a}^{[0]}\)</div></div>
+        <div class="pipe-arrow"></div>
+        <div class="pipe-step"><div class="pipe-box">\(\mathbf{z}^{[1]} = \mathbf{W}^{[1]}\mathbf{a}^{[0]} + \mathbf{b}^{[1]}\)<br>\(\mathbf{a}^{[1]} = \sigma(\mathbf{z}^{[1]})\)</div></div>
+        <div class="pipe-arrow"></div>
+        <div class="pipe-step"><div class="pipe-box">\(\mathbf{z}^{[2]} = \mathbf{W}^{[2]}\mathbf{a}^{[1]} + \mathbf{b}^{[2]}\)<br>\(\mathbf{a}^{[2]} = \sigma(\mathbf{z}^{[2]})\)</div></div>
+        <div class="pipe-arrow"></div>
+        <div class="pipe-step"><div class="pipe-box" style="border-color:#51cf66;color:#51cf66">Prediction \(\hat{\mathbf{y}}\) &amp; Loss \(\mathcal{L}\)</div></div>
+      </div>
+
+      <h4>2. Dynamic Computational Graphs in PyTorch Autograd</h4>
+      <p>In PyTorch, computation graphs are <strong>dynamic</strong> (Define-by-Run). As you perform math on tensors with <code>requires_grad=True</code>, PyTorch dynamically constructs a directed acyclic graph (DAG) where leaf nodes are your model parameters and internal nodes are intermediate operations (e.g., <code>AddBackward0</code>, <code>MmBackward0</code>).</p>
+      
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>autograd_graph.py</span>
+        </div>
+        <pre><span class="kw">import</span> torch
+
+<span class="cm"># Leaf tensors requiring gradients</span>
+x = torch.<span class="fn">tensor</span>([<span class="nu">2.0</span>], requires_grad=<span class="kw">True</span>)
+w = torch.<span class="fn">tensor</span>([<span class="nu">3.0</span>], requires_grad=<span class="kw">True</span>)
+b = torch.<span class="fn">tensor</span>([<span class="nu">1.0</span>], requires_grad=<span class="kw">True</span>)
+
+<span class="cm"># Forward graph construction: y = w * x + b, loss = (y - target)^2</span>
+y = w * x + b           <span class="cm"># y = 3*2 + 1 = 7</span>
+loss = (y - <span class="nu">10.0</span>) ** <span class="nu">2</span>  <span class="cm"># loss = (7 - 10)^2 = 9</span>
+
+<span class="cm"># Backward pass: traverses the graph in reverse to populate .grad</span>
+loss.<span class="fn">backward</span>()
+
+<span class="cm"># dLoss/dw = 2*(y - 10) * dy/dw = 2*(-3) * x = -6 * 2 = -12.0</span>
+<span class="fn">print</span>(<span class="st">"dLoss/dw:"</span>, w.grad)  <span class="cm"># tensor([-12.])</span>
+<span class="fn">print</span>(<span class="st">"dLoss/db:"</span>, b.grad)  <span class="cm"># tensor([-6.])</span></pre>
+      </div>
+
+      <h4>3. Backpropagation Derivation (The Chain Rule)</h4>
+      <p>Backpropagation applies the multivariate chain rule from calculus. We define the error vector at the output layer \(L\) as:</p>
+      <div class="formula">\boldsymbol{\delta}^{[L]} = \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{[L]}} = \nabla_{\mathbf{a}^{[L]}} \mathcal{L} \odot \sigma'(\mathbf{z}^{[L]})</div>
+      <p>We then propagate this error backward through preceding layers \(l = L-1, \dots, 1\):</p>
+      <div class="formula">\boldsymbol{\delta}^{[l]} = \left( (\mathbf{W}^{[l+1]})^T \boldsymbol{\delta}^{[l+1]} \right) \odot \sigma'(\mathbf{z}^{[l]})</div>
+      <p>The gradients with respect to weights and biases for each layer are:</p>
+      <div class="formula">\frac{\partial \mathcal{L}}{\partial \mathbf{W}^{[l]}} = \boldsymbol{\delta}^{[l]} (\mathbf{a}^{[l-1]})^T, \qquad \frac{\partial \mathcal{L}}{\partial \mathbf{b}^{[l]}} = \boldsymbol{\delta}^{[l]}</div>
+
+      <h4>4. The Vanishing and Exploding Gradient Problem</h4>
+      <p>Notice the term in backpropagation: \(\boldsymbol{\delta}^{[1]}\) involves repeated multiplications of weight matrices and activation derivatives:</p>
+      <div class="formula">\frac{\partial \mathcal{L}}{\partial \mathbf{W}^{[1]}} \propto \prod_{k=2}^{L} \mathbf{W}^{[k]T} \cdot \text{diag}(\sigma'(\mathbf{z}^{[k]}))</div>
+      <ul>
+        <li><strong>Vanishing Gradients:</strong> If activations have derivatives \(< 1\) (e.g. Sigmoid \(\le 0.25\)), multiplying \(0.25^{10} \approx 9.5 \times 10^{-7}\) causes early layer gradients to vanish to zero. The early layers never learn!</li>
+        <li><strong>Exploding Gradients:</strong> If weights are initialized too large (eigenvalues \(> 1\)), gradients grow exponentially, causing numerical overflow (<code>NaN</code> loss) and erratic weight updates.</li>
+      </ul>
+      <div class="info-box tip">
+        <strong>Modern Solutions to Gradient Instability:</strong>
+        <ol style="margin-left:1.2rem;margin-top:4px;">
+          <li><strong>He (Kaiming) Initialization:</strong> Weights drawn from \(\mathcal{N}(0, \sqrt{2/n_{\text{in}}})\) for ReLU/GELU networks.</li>
+          <li><strong>Residual / Skip Connections:</strong> Add identity shortcuts \(f(x) + x\) so gradients can flow straight backward without decay (ResNet).</li>
+          <li><strong>Gradient Clipping:</strong> Caps gradient norms: <code>torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)</code>.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 3: LOSSES, OPTIMIZERS & REGULARIZATION ==================== -->
+    <div class="section" id="dl-loss-optim">
+      <h3>Loss Functions, Optimizers, Learning Rates &amp; Regularization</h3>
+      <p>A neural network is only as good as the loss function defining its objective and the optimizer guiding its parameter trajectories across high-dimensional loss landscapes.</p>
+
+      <h4>1. Loss Functions in PyTorch</h4>
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="cc-icon">🎯</div>
+          <h4><code>nn.MSELoss()</code></h4>
+          <p>Mean Squared Error for regression: \(\frac{1}{N}\sum (y_i - \hat{y}_i)^2\). Heavily penalizes large outlier errors.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">🛡️</div>
+          <h4><code>nn.SmoothL1Loss()</code></h4>
+          <p>Huber loss: quadratic for small errors (\(|e| < 1\)), linear for large errors. Robust to outliers in bounding-box regression.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">⚡</div>
+          <h4><code>nn.BCEWithLogitsLoss()</code></h4>
+          <p>Binary classification. <strong>Critical:</strong> Combines Sigmoid + BCE with the log-sum-exp trick for numerical stability to prevent underflow.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">📊</div>
+          <h4><code>nn.CrossEntropyLoss()</code></h4>
+          <p>Multi-class classification. Combines <code>LogSoftmax</code> + <code>NLLLoss</code>. <strong>Pass raw logits, not probabilities!</strong> Supports class weights.</p>
+        </div>
+      </div>
+
+      <h4>2. Learning Rate Dynamics &amp; Schedulers</h4>
+      <p>The learning rate \(\eta\) is the single most critical hyperparameter. Too high \(\to\) divergence; too low \(\to\) training stalls in plateaus. Modern pipelines employ <strong>Learning Rate Schedulers</strong> that adapt \(\eta\) over training:</p>
+      
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>lr_schedulers.py</span>
+        </div>
+        <pre><span class="kw">import</span> torch.optim <span class="kw">as</span> optim
+<span class="kw">from</span> torch.optim.lr_scheduler <span class="kw">import</span> CosineAnnealingLR, ReduceLROnPlateau
+
+optimizer = optim.<span class="cl">AdamW</span>(model.<span class="fn">parameters</span>(), lr=<span class="nu">1e-3</span>, weight_decay=<span class="nu">1e-2</span>)
+
+<span class="cm"># Strategy A: Cosine Annealing (smooth decay to min_lr)</span>
+scheduler_cosine = <span class="cl">CosineAnnealingLR</span>(optimizer, T_max=<span class="nu">50</span>, eta_min=<span class="nu">1e-6</span>)
+
+<span class="cm"># Strategy B: Reduce on Plateau (halve lr when validation loss plateaus)</span>
+scheduler_plateau = <span class="cl">ReduceLROnPlateau</span>(optimizer, mode=<span class="st">'min'</span>, factor=<span class="nu">0.5</span>, patience=<span class="nu">3</span>)
+
+<span class="kw">for</span> epoch <span class="kw">in</span> <span class="fn">range</span>(epochs):
+    train_loss = <span class="fn">train_one_epoch</span>(model, train_loader, optimizer)
+    val_loss   = <span class="fn">validate</span>(model, val_loader)
+    
+    <span class="cm"># Step the scheduler</span>
+    scheduler_plateau.<span class="fn">step</span>(val_loss)
+    <span class="fn">print</span>(<span class="st">f"Epoch {epoch}: LR = {optimizer.param_groups[0]['lr']}"</span>)</pre>
+      </div>
+
+      <h4>3. Regularization Techniques</h4>
+      <ul>
+        <li><strong>Weight Decay (\(L_2\) Regularization):</strong> Adds \(\frac{\lambda}{2} \|\mathbf{w}\|^2\) penalty to the loss. Shrinks non-essential weights toward zero, producing smoother decision surfaces.</li>
+        <li><strong>Early Stopping:</strong> Monitors validation metric. Halts training when validation loss stops improving for \(k\) epochs (patience) and rolls back to the best checkpoint.</li>
+      </ul>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>early_stopping.py</span>
+        </div>
+        <pre><span class="kw">class</span> <span class="cl">EarlyStopping</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, patience=<span class="nu">5</span>, delta=<span class="nu">1e-4</span>):
+        self.patience = patience
+        self.delta = delta
+        self.counter = <span class="nu">0</span>
+        self.best_loss = <span class="fn">float</span>(<span class="st">'inf'</span>)
+        self.early_stop = <span class="kw">False</span>
+
+    <span class="kw">def</span> <span class="fn">__call__</span>(self, val_loss, model, checkpoint_path=<span class="st">'best_model.pth'</span>):
+        <span class="kw">if</span> val_loss < self.best_loss - self.delta:
+            self.best_loss = val_loss
+            self.counter = <span class="nu">0</span>
+            torch.<span class="fn">save</span>(model.<span class="fn">state_dict</span>(), checkpoint_path)
+            <span class="fn">print</span>(<span class="st">f"  🎯 Validation loss improved to {val_loss:.4f}. Checkpoint saved."</span>)
+        <span class="kw">else</span>:
+            self.counter += <span class="nu">1</span>
+            <span class="fn">print</span>(<span class="st">f"  ⚠️ EarlyStopping counter: {self.counter}/{self.patience}"</span>)
+            <span class="kw">if</span> self.counter >= self.patience:
+                self.early_stop = <span class="kw">True</span></pre>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 4: SGD, ADAM, BATCHNORM & DROPOUT ==================== -->
+    <div class="section" id="dl-reg-norm">
+      <h3>SGD, Adam, Batch Normalization &amp; Dropout</h3>
+      <p>Training deep networks requires stabilizing gradient updates and preventing overfitting across millions of free parameters.</p>
+
+      <h4>1. Optimizers: SGD with Momentum vs Adam vs AdamW</h4>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Optimizer</th>
+              <th>Mathematical Update Rule</th>
+              <th>Pros</th>
+              <th>Cons / Watch Outs</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>SGD</strong></td>
+              <td>\(\theta_t = \theta_{t-1} - \eta \mathbf{g}_t\)</td>
+              <td>Theoretical convergence guarantees; simple.</td>
+              <td>Slow, oscillates violently across ravine ravines.</td>
+            </tr>
+            <tr>
+              <td><strong>SGD + Momentum</strong></td>
+              <td>\(\mathbf{v}_t = \beta \mathbf{v}_{t-1} + \eta \mathbf{g}_t\)<br>\(\theta_t = \theta_{t-1} - \mathbf{v}_t\)</td>
+              <td>Acts like a heavy bowling ball rolling down hills; dampens oscillations and speeds through plateaus.</td>
+              <td>Requires careful tuning of learning rate and momentum \(\beta \approx 0.9\).</td>
+            </tr>
+            <tr>
+              <td><strong>Adam</strong></td>
+              <td>Tracks 1st moment \(\hat{\mathbf{m}}_t\) (mean) and 2nd moment \(\hat{\mathbf{v}}_t\) (uncentered variance):<br>\(\theta_t = \theta_{t-1} - \frac{\eta}{\sqrt{\hat{\mathbf{v}}_t} + \epsilon} \hat{\mathbf{m}}_t\)</td>
+              <td>Adaptive per-parameter learning rate; works well out-of-the-box with default \(\eta=0.001\).</td>
+              <td>Couples \(L_2\) regularization incorrectly with gradient updates.</td>
+            </tr>
+            <tr>
+              <td><strong>AdamW</strong></td>
+              <td>Decouples weight decay from gradient updates:<br>\(\theta_t = \theta_{t-1} - \eta \lambda \theta_{t-1} - \frac{\eta}{\sqrt{\hat{\mathbf{v}}_t} + \epsilon} \hat{\mathbf{m}}_t\)</td>
+              <td><strong>State of the art</strong> for Transformers and modern Deep Learning (Loshchilov &amp; Hutter, 2017).</td>
+              <td>Default choice for almost all modern architectures.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>2. Batch Normalization (BatchNorm)</h4>
+      <p>Introduced by Ioffe &amp; Szegedy (2015), <strong>Batch Normalization</strong> normalizes the activations of a mini-batch to have zero mean and unit variance. This stabilizes the hidden layer input distributions, enabling faster convergence and higher learning rates.</p>
+
+      <div class="formula">\mu_B = \frac{1}{m}\sum_{i=1}^m x_i, \quad \sigma_B^2 = \frac{1}{m}\sum_{i=1}^m (x_i - \mu_B)^2 \quad \longrightarrow \quad \hat{x}_i = \frac{x_i - \mu_B}{\sqrt{\sigma_B^2 + \epsilon}} \quad \longrightarrow \quad y_i = \gamma \hat{x}_i + \beta</div>
+      <p>where \(\gamma\) (scale) and \(\beta\) (shift) are learnable parameters that allow the network to restore representation power if needed.</p>
+
+      <div class="info-box note">
+        <strong>Training vs Evaluation Behavior:</strong>
+        <ul>
+          <li><strong>During Training:</strong> Computes mean \(\mu_B\) and variance \(\sigma_B^2\) from the current mini-batch, while maintaining an exponential moving average (running mean and running variance).</li>
+          <li><strong>During Inference (<code>model.eval()</code>):</strong> Freezes stats and uses the accumulated running mean and variance. If you forget <code>model.eval()</code>, inference on a single sample will crash or give bogus predictions!</li>
+          <li><strong>BatchNorm vs LayerNorm:</strong> BatchNorm normalizes across the <em>batch dimension</em> (sensitive to batch size; fails on batch size 1). <strong>LayerNorm</strong> normalizes across the <em>feature dimension</em> for each sample independently — making LayerNorm the standard for NLP and Transformers!</li>
+        </ul>
+      </div>
+
+      <h4>3. Dropout</h4>
+      <p>Invented by Srivastava et al. (2014), <strong>Dropout</strong> randomly zeroes out a fraction \(p\) (e.g. \(p=0.5\)) of neuron activations during each forward training step.</p>
+      <ul>
+        <li><strong>Why it works:</strong> Forces neurons to learn redundant, robust features rather than co-adapting with specific neighbor neurons. Think of it as training an ensemble of \(2^N\) thinned subnetworks.</li>
+        <li><strong>Inverted Dropout:</strong> PyTorch uses <em>inverted dropout</em> during training: activations that survive are scaled up by \(\frac{1}{1-p}\). This guarantees that at evaluation time, no computation or scaling is needed — the model simply passes data straight through!</li>
+      </ul>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>norm_and_dropout.py</span>
+        </div>
+        <pre><span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+
+<span class="cm"># Typical modern MLP block with BatchNorm and Dropout</span>
+block = nn.<span class="cl">Sequential</span>(
+    nn.<span class="cl">Linear</span>(<span class="nu">512</span>, <span class="nu">256</span>),
+    nn.<span class="cl">BatchNorm1d</span>(<span class="nu">256</span>),    <span class="cm"># normalizes activations across batch</span>
+    nn.<span class="cl">ReLU</span>(),
+    nn.<span class="cl">Dropout</span>(p=<span class="nu">0.3</span>),        <span class="cm"># 30% of neurons randomly zeroed during train</span>
+    nn.<span class="cl">Linear</span>(<span class="nu">256</span>, <span class="nu">10</span>)
+)</pre>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 5: PYTORCH CORE: TENSORS & AUTOGRAD ==================== -->
+    <div class="section" id="dl-pytorch-core">
+      <h3>PyTorch Core: Tensors, Autograd &amp; Device Acceleration</h3>
+      <p>PyTorch's core data structure is the <strong>Tensor</strong> — an n-dimensional array analogous to a NumPy <code>ndarray</code>, but supercharged with automatic differentiation (Autograd) and accelerated GPU computation.</p>
+
+      <h4>1. Essential Tensor Operations &amp; Reshaping</h4>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>pytorch_tensors.py</span>
+        </div>
+        <pre><span class="kw">import</span> torch
+
+<span class="cm"># 1. Device Agnostic Setup (Runs on NVIDIA CUDA, Apple MPS, or CPU)</span>
+device = torch.<span class="cl">device</span>(<span class="st">'cuda'</span> <span class="kw">if</span> torch.cuda.<span class="fn">is_available</span>() <span class="kw">else</span> 
+                      <span class="st">'mps'</span> <span class="kw">if</span> torch.backends.mps.<span class="fn">is_available</span>() <span class="kw">else</span> <span class="st">'cpu'</span>)
+<span class="fn">print</span>(<span class="st">f"Using compute device: {device}"</span>)
+
+<span class="cm"># 2. Tensor Creation</span>
+t_zeros = torch.<span class="fn">zeros</span>((<span class="nu">2</span>, <span class="nu">3</span>))
+t_rand  = torch.<span class="fn">randn</span>((<span class="nu">2</span>, <span class="nu">3</span>), dtype=torch.float32)
+t_from_np = torch.<span class="fn">from_numpy</span>(np.array([<span class="nu">1.0</span>, <span class="nu">2.0</span>, <span class="nu">3.0</span>]))
+
+<span class="cm"># 3. Shape Manipulations (Vital for DL architectures!)</span>
+x = torch.<span class="fn">randn</span>(<span class="nu">4</span>, <span class="nu">3</span>, <span class="nu">32</span>, <span class="nu">32</span>)  <span class="cm"># Batch, Channels, Height, Width</span>
+
+<span class="cm"># Flatten for Dense layer: (4, 3072)</span>
+flat_view = x.<span class="fn">view</span>(x.size(<span class="nu">0</span>), -<span class="nu">1</span>)      <span class="cm"># requires contiguous memory</span>
+flat_reshape = x.<span class="fn">reshape</span>(x.size(<span class="nu">0</span>), -<span class="nu">1</span>) <span class="cm"># handles non-contiguous memory</span>
+
+<span class="cm"># Add / Remove dimensions</span>
+t_single = torch.<span class="fn">randn</span>(<span class="nu">28</span>, <span class="nu">28</span>)
+t_expanded = t_single.<span class="fn">unsqueeze</span>(<span class="nu">0</span>)  <span class="cm"># shape: (1, 28, 28) - adds batch dim</span>
+t_squeezed = t_expanded.<span class="fn">squeeze</span>(<span class="nu">0</span>)  <span class="cm"># shape: (28, 28) - strips dim of size 1</span>
+
+<span class="cm"># Permute dimensions (e.g. PyTorch (B,C,H,W) -> Matplotlib (B,H,W,C))</span>
+img_permuted = x.<span class="fn">permute</span>(<span class="nu">0</span>, <span class="nu">2</span>, <span class="nu">3</span>, <span class="nu">1</span>)  <span class="cm"># shape: (4, 32, 32, 3)</span>
+
+<span class="cm"># 4. Moving to GPU/Device</span>
+x_gpu = x.<span class="fn">to</span>(device)</pre>
+      </div>
+
+      <h4>2. The Autograd Workflow Rules</h4>
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="cc-icon">🔄</div>
+          <h4><code>optimizer.zero_grad()</code></h4>
+          <p>PyTorch <strong>accumulates</strong> gradients by default on <code>.grad</code>. You MUST call <code>zero_grad()</code> before each backward pass or gradients from previous batches sum together!</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">🚫</div>
+          <h4><code>with torch.no_grad():</code></h4>
+          <p>Disables graph construction and history tracking. Cuts memory consumption in half during evaluation, validation, and inference.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">✂️</div>
+          <h4><code>tensor.detach()</code></h4>
+          <p>Detaches a tensor from the computation graph. Returns a new tensor that shares storage but requires no gradients (used in GANs, RL, and loss logging).</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">🔢</div>
+          <h4><code>tensor.item()</code></h4>
+          <p>Extracts a standard Python scalar number from a 1-element tensor. Crucial for logging loss values without holding computational graph memory!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 6: DATASETS, DATALOADERS & TRAINING LOOPS ==================== -->
+    <div class="section" id="dl-data-train">
+      <h3>Custom Datasets, DataLoaders &amp; The Complete Training Loop</h3>
+      <p>Clean data pipelines separate model architecture from data ingestion. PyTorch achieves this via <code>torch.utils.data.Dataset</code> and <code>torch.utils.data.DataLoader</code>.</p>
+
+      <h4>1. Custom PyTorch Dataset</h4>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>custom_dataset.py</span>
+        </div>
+        <pre><span class="kw">import</span> torch
+<span class="kw">from</span> torch.utils.data <span class="kw">import</span> Dataset, DataLoader
+
+<span class="kw">class</span> <span class="cl">TabularOrImageDataset</span>(Dataset):
+    <span class="st">"""Every custom dataset must implement __init__, __len__, and __getitem__"""</span>
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, features, targets, transform=<span class="kw">None</span>):
+        self.features = torch.<span class="fn">tensor</span>(features, dtype=torch.float32)
+        self.targets = torch.<span class="fn">tensor</span>(targets, dtype=torch.long)
+        self.transform = transform
+
+    <span class="kw">def</span> <span class="fn">__len__</span>(self):
+        <span class="kw">return</span> <span class="fn">len</span>(self.features)
+
+    <span class="kw">def</span> <span class="fn">__getitem__</span>(self, idx):
+        x = self.features[idx]
+        y = self.targets[idx]
+        <span class="kw">if</span> self.transform:
+            x = self.transform(x)
+        <span class="kw">return</span> x, y
+
+<span class="cm"># Wrapping in a DataLoader for multi-threaded batching & shuffling</span>
+train_dataset = <span class="cl">TabularOrImageDataset</span>(X_train, y_train)
+train_loader = <span class="cl">DataLoader</span>(
+    train_dataset, 
+    batch_size=<span class="nu">64</span>, 
+    shuffle=<span class="kw">True</span>,       <span class="cm"># shuffle for training</span>
+    num_workers=<span class="nu">2</span>,      <span class="cm"># parallel worker subprocesses</span>
+    pin_memory=<span class="kw">True</span>     <span class="cm"># speeds up CPU-to-GPU data transfer</span>
+)</pre>
+      </div>
+
+      <h4>2. The Idiomatic PyTorch Training &amp; Validation Loop</h4>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>idiomatic_training_loop.py</span>
+        </div>
+        <pre><span class="kw">def</span> <span class="fn">train_one_epoch</span>(model, loader, criterion, optimizer, device):
+    model.<span class="fn">train</span>()  <span class="cm"># enables dropout and batchnorm updates</span>
+    running_loss, correct, total = <span class="nu">0.0</span>, <span class="nu">0</span>, <span class="nu">0</span>
+    
+    <span class="kw">for</span> inputs, labels <span class="kw">in</span> loader:
+        inputs, labels = inputs.<span class="fn">to</span>(device), labels.<span class="fn">to</span>(device)
+        
+        optimizer.<span class="fn">zero_grad</span>()             <span class="cm"># 1. Clear old gradients</span>
+        outputs = model(inputs)           <span class="cm"># 2. Forward pass</span>
+        loss = criterion(outputs, labels) <span class="cm"># 3. Calculate loss</span>
+        loss.<span class="fn">backward</span>()                  <span class="cm"># 4. Backward pass (autograd)</span>
+        optimizer.<span class="fn">step</span>()                  <span class="cm"># 5. Update weights</span>
+        
+        running_loss += loss.<span class="fn">item</span>() * inputs.size(<span class="nu">0</span>)
+        _, preds = torch.<span class="fn">max</span>(outputs, <span class="nu">1</span>)
+        correct += torch.<span class="fn">sum</span>(preds == labels.data).<span class="fn">item</span>()
+        total += labels.size(<span class="nu">0</span>)
+        
+    <span class="kw">return</span> running_loss / total, correct / total
+
+<span class="kw">def</span> <span class="fn">evaluate</span>(model, loader, criterion, device):
+    model.<span class="fn">eval</span>()   <span class="cm"># disables dropout; freezes running stats in batchnorm</span>
+    running_loss, correct, total = <span class="nu">0.0</span>, <span class="nu">0</span>, <span class="nu">0</span>
+    
+    <span class="kw">with</span> torch.<span class="fn">no_grad</span>():  <span class="cm"># no autograd graph memory allocation</span>
+        <span class="kw">for</span> inputs, labels <span class="kw">in</span> loader:
+            inputs, labels = inputs.<span class="fn">to</span>(device), labels.<span class="fn">to</span>(device)
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            
+            running_loss += loss.<span class="fn">item</span>() * inputs.size(<span class="nu">0</span>)
+            _, preds = torch.<span class="fn">max</span>(outputs, <span class="nu">1</span>)
+            correct += torch.<span class="fn">sum</span>(preds == labels.data).<span class="fn">item</span>()
+            total += labels.size(<span class="nu">0</span>)
+            
+    <span class="kw">return</span> running_loss / total, correct / total</pre>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 7: CNNS & TRANSFER LEARNING ==================== -->
+    <div class="section" id="dl-cnn-transfer">
+      <h3>Convolutional Neural Networks (CNNs) &amp; Transfer Learning</h3>
+      <p>While MLPs treat image pixels as flattened independent inputs — destroying spatial 2D relationships and requiring astronomical parameter counts — <strong>CNNs</strong> use localized kernel filtering, parameter sharing, and pooling to capture translation-invariant visual hierarchies.</p>
+
+      <h4>1. The Convolution Operation &amp; Spatial Dimension Formula</h4>
+      <p>A 2D convolution slides a small weight kernel (e.g. \(3 \times 3\)) across an input feature map. Given input spatial dimension \(W\), kernel size \(K\), padding \(P\), and stride \(S\), the output dimension is:</p>
+      
+      <div class="formula">O = \left\lfloor \frac{W - K + 2P}{S} \right\rfloor + 1</div>
+      
+      <p><strong>Example:</strong> An image of size \(32 \times 32\) passed through a Conv2d layer with \(K=3, P=1, S=1\) yields \(\lfloor\frac{32 - 3 + 2(1)}{1}\rfloor + 1 = 32\) (preserving spatial size!).</p>
+
+      <h4>2. Pooling &amp; Architecture Evolution</h4>
+      <ul>
+        <li><strong>MaxPool2d(2, 2):</strong> Halves spatial height and width by keeping only the maximum activation. Provides small translation invariance and reduces computational load.</li>
+        <li><strong>AdaptiveAvgPool2d((1, 1)):</strong> Global Average Pooling collapses each feature map into a single average scalar, converting \((B, C, H, W) \to (B, C, 1, 1)\). Replaces heavy Flatten layers, preventing overfitting and allowing variable input image sizes!</li>
+        <li><strong>Residual Connections (ResNet):</strong> He et al. (2015) introduced skip connections \(\mathbf{y} = \mathcal{F}(\mathbf{x}) + \mathbf{x}\). When backpropagating, the derivative \(\frac{\partial \mathbf{y}}{\partial \mathbf{x}} = \frac{\partial \mathcal{F}}{\partial \mathbf{x}} + 1\) ensures a constant direct gradient highway of \(+1\), allowing networks to scale to 152+ layers without vanishing gradients.</li>
+      </ul>
+
+      <h4>3. Transfer Learning with PyTorch</h4>
+      <p>Never train computer vision models from scratch for real-world tasks. Pre-trained models (trained on 1.4 million ImageNet images) already understand edges, textures, curves, and semantic objects.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>transfer_learning_resnet.py</span>
+        </div>
+        <pre><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+<span class="kw">from</span> torchvision <span class="kw">import</span> models
+<span class="kw">from</span> torchvision.models <span class="kw">import</span> ResNet18_Weights
+
+<span class="cm"># 1. Load pre-trained ResNet-18 with latest weights</span>
+model = models.<span class="fn">resnet18</span>(weights=ResNet18_Weights.DEFAULT)
+
+<span class="cm"># 2. Freeze the backbone feature extractor parameters</span>
+<span class="kw">for</span> param <span class="kw">in</span> model.<span class="fn">parameters</span>():
+    param.requires_grad = <span class="kw">False</span>
+
+<span class="cm"># 3. Replace the final classification head (original fc has 1000 ImageNet outputs)</span>
+num_features = model.fc.in_features  <span class="cm"># 512</span>
+num_target_classes = <span class="nu">5</span>               <span class="cm"># our custom classes</span>
+
+model.fc = nn.<span class="cl">Sequential</span>(
+    nn.<span class="cl">Linear</span>(num_features, <span class="nu">256</span>),
+    nn.<span class="cl">ReLU</span>(),
+    nn.<span class="cl">Dropout</span>(<span class="nu">0.3</span>),
+    nn.<span class="cl">Linear</span>(<span class="nu">256</span>, num_target_classes)
+)
+
+<span class="cm"># 4. Only parameters of the new head will be updated by optimizer!</span>
+optimizer = torch.optim.<span class="cl">AdamW</span>(model.fc.<span class="fn">parameters</span>(), lr=<span class="nu">1e-3</span>)</pre>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 8: EMBEDDINGS, ATTENTION & TRANSFORMERS ==================== -->
+    <div class="section" id="dl-transformer">
+      <h3>Embeddings, Attention &amp; The Basic Transformer Architecture</h3>
+      <p>The Transformer (Vaswani et al., 2017 "Attention Is All You Need") revolutionized modern AI, replacing recurrent loops with parallel self-attention mechanisms that power ChatGPT, Claude, Gemini, and modern Vision Transformers (ViT).</p>
+
+      <h4>1. Embeddings &amp; Positional Encodings</h4>
+      <ul>
+        <li><strong>Token Embeddings:</strong> Discrete token IDs (integers \(0 \dots V\)) are mapped to continuous vectors of dimension \(d_{\text{model}}\) via a lookup table: <code>nn.Embedding(vocab_size, d_model)</code>.</li>
+        <li><strong>Positional Encodings:</strong> Since self-attention treats tokens as an unordered set (permutation invariant), we inject sequential order by adding positional vectors (sinusoidal or learned) to the token embeddings:
+        <br>
+        \(PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{2i/d}}\right), \quad PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{2i/d}}\right)\)
+        </li>
+      </ul>
+
+      <h4>2. Scaled Dot-Product Attention: Query, Key, Value</h4>
+      <p>Attention asks: <em>"For each token (Query), how relevant are all other tokens (Keys), and how much of their content (Values) should I mix into my representation?"</em></p>
+
+      <div class="formula">\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\left(\frac{\mathbf{Q} \mathbf{K}^T}{\sqrt{d_k}}\right) \mathbf{V}</div>
+
+      <div class="info-box tip">
+        <strong>Why divide by \(\sqrt{d_k}\)?</strong>
+        When embedding dimension \(d_k\) is large (e.g. 64 or 128), the dot products \(\mathbf{q} \cdot \mathbf{k}\) grow very large in magnitude. This pushes the <code>softmax</code> function into regions with infinitesimal gradients (vanishing gradient problem). Scaling by \(\frac{1}{\sqrt{d_k}}\) preserves unit variance and maintains healthy gradient flow!
+      </div>
+
+      <h4>3. Multi-Head Attention &amp; Transformer Block</h4>
+      <p>Instead of performing a single attention function, <strong>Multi-Head Attention</strong> projects queries, keys, and values \(h\) times with different learned linear projections. This allows the model to simultaneously attend to information from different representation subspaces (e.g., syntax vs subject-verb agreement vs sentiment).</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>transformer_block.py</span>
+        </div>
+        <pre><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+
+<span class="kw">class</span> <span class="cl">TransformerBlock</span>(nn.<span class="cl">Module</span>):
+    <span class="st">"""A standard Pre-LN Transformer Encoder Block"""</span>
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, d_model=<span class="nu">256</span>, num_heads=<span class="nu">8</span>, d_ff=<span class="nu">1024</span>, dropout=<span class="nu">0.1</span>):
+        <span class="fn">super</span>().<span class="fn">__init__</span>()
+        self.ln1 = nn.<span class="cl">LayerNorm</span>(d_model)
+        self.attn = nn.<span class="cl">MultiheadAttention</span>(embed_dim=d_model, num_heads=num_heads, 
+                                          dropout=dropout, batch_first=<span class="kw">True</span>)
+        self.ln2 = nn.<span class="cl">LayerNorm</span>(d_model)
+        self.mlp = nn.<span class="cl">Sequential</span>(
+            nn.<span class="cl">Linear</span>(d_model, d_ff),
+            nn.<span class="cl">GELU</span>(),
+            nn.<span class="cl">Dropout</span>(dropout),
+            nn.<span class="cl">Linear</span>(d_ff, d_model),
+            nn.<span class="cl">Dropout</span>(dropout)
+        )
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x, mask=<span class="kw">None</span>):
+        <span class="cm"># 1. Multi-head Self-Attention with Pre-LN & Residual Connection</span>
+        norm_x = self.ln1(x)
+        attn_out, _ = self.attn(norm_x, norm_x, norm_x, attn_mask=mask)
+        x = x + attn_out
+        
+        <span class="cm"># 2. Feed-Forward MLP with Pre-LN & Residual Connection</span>
+        x = x + self.mlp(self.ln2(x))
+        <span class="kw">return</span> x
+
+<span class="cm"># Test Transformer Block</span>
+dummy_tokens = torch.<span class="fn">randn</span>(<span class="nu">2</span>, <span class="nu">16</span>, <span class="nu">256</span>)  <span class="cm"># Batch=2, SeqLen=16, Dim=256</span>
+block = <span class="cl">TransformerBlock</span>(d_model=<span class="nu">256</span>, num_heads=<span class="nu">8</span>)
+out = block(dummy_tokens)
+<span class="fn">print</span>(<span class="st">"Output shape:"</span>, out.shape)  <span class="cm"># torch.Size([2, 16, 256])</span></pre>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 9: ROSETTA STONE: PYTORCH VS TF/KERAS ==================== -->
+    <div class="section" id="dl-tf-rosetta">
+      <h3>Reading TensorFlow / Keras Code — The Rosetta Stone</h3>
+      <p>Per the study guide rule: <em>Use PyTorch as your primary deep-learning framework; learn to read TensorFlow/Keras code when needed</em>. Here is your direct side-by-side translation table to quickly understand any Keras/TensorFlow repository you encounter in research papers or legacy enterprise environments.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Concept</th>
+              <th>PyTorch (Primary Framework)</th>
+              <th>TensorFlow / Keras Equivalent</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Philosophy</strong></td>
+              <td>Imperative, pythonic, dynamic graph (Define-by-Run)</td>
+              <td>Declarative, high-level abstractions, functional API</td>
+            </tr>
+            <tr>
+              <td><strong>Dense / Linear Layer</strong></td>
+              <td><code>nn.Linear(in_features, out_features)</code></td>
+              <td><code>layers.Dense(units, activation='...')</code></td>
+            </tr>
+            <tr>
+              <td><strong>Convolution 2D</strong></td>
+              <td><code>nn.Conv2d(in_channels, out_channels, 3)</code></td>
+              <td><code>layers.Conv2D(filters, (3, 3))</code></td>
+            </tr>
+            <tr>
+              <td><strong>Batch Normalization</strong></td>
+              <td><code>nn.BatchNorm2d(num_features)</code></td>
+              <td><code>layers.BatchNormalization()</code></td>
+            </tr>
+            <tr>
+              <td><strong>Dropout</strong></td>
+              <td><code>nn.Dropout(p=0.3)</code> (probability of zeroing)</td>
+              <td><code>layers.Dropout(rate=0.3)</code></td>
+            </tr>
+            <tr>
+              <td><strong>Model Definition</strong></td>
+              <td>Subclass <code>nn.Module</code> with <code>forward(self, x)</code></td>
+              <td><code>keras.Sequential([...])</code> or functional <code>keras.Model(inputs, outputs)</code></td>
+            </tr>
+            <tr>
+              <td><strong>Loss Function</strong></td>
+              <td><code>nn.CrossEntropyLoss()</code> (expects raw logits!)</td>
+              <td><code>losses.SparseCategoricalCrossentropy(from_logits=True)</code></td>
+            </tr>
+            <tr>
+              <td><strong>Optimizer</strong></td>
+              <td><code>torch.optim.AdamW(model.parameters(), lr=1e-3)</code></td>
+              <td><code>keras.optimizers.Adam(learning_rate=1e-3)</code></td>
+            </tr>
+            <tr>
+              <td><strong>Training Execution</strong></td>
+              <td>Explicit loop: <code>loss.backward()</code> + <code>optimizer.step()</code></td>
+              <td>Implicit wrapper: <code>model.fit(X, y, epochs=10)</code></td>
+            </tr>
+            <tr>
+              <td><strong>Evaluation / Inference</strong></td>
+              <td><code>model.eval()</code> with <code>with torch.no_grad():</code></td>
+              <td><code>model.predict(X_test)</code> or <code>model.evaluate(X, y)</code></td>
+            </tr>
+            <tr>
+              <td><strong>Device Handling</strong></td>
+              <td>Explicit: <code>tensor.to(device)</code>, <code>model.to(device)</code></td>
+              <td>Implicit: TF handles GPU allocation automatically</td>
+            </tr>
+            <tr>
+              <td><strong>Saving Weights</strong></td>
+              <td><code>torch.save(model.state_dict(), 'm.pth')</code></td>
+              <td><code>model.save('model.keras')</code> or <code>.save_weights()</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 10: DELIVERABLE: TRAIN, EVALUATE & SERVE ==================== -->
+    <div class="section" id="proj-ch6">
+      <h3>Phase 3 Deliverable: Train, Evaluate &amp; Serve a Neural Network using PyTorch</h3>
+      <p>The core deliverable for Phase 3 is building an end-to-end production deep learning pipeline: <strong>Train</strong> a neural network with validation and checkpointing, <strong>Evaluate</strong> its precision/recall metrics, and <strong>Serve</strong> real-time inference via a production-grade <strong>FastAPI REST API</strong>.</p>
+
+      <div class="steps">
+        <!-- STEP 1 -->
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Model Architecture &amp; Training Script (<code>train.py</code>)</h4>
+            <p>Defines a robust convolutional/dense image classifier with BatchNorm, Dropout, and validation loops, saving the best <code>state_dict</code> checkpoint.</p>
+            
+            <div class="code-block">
+              <div class="code-header">
+                <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span>train.py</span>
+              </div>
+              <pre><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+<span class="kw">import</span> torch.optim <span class="kw">as</span> optim
+<span class="kw">from</span> torch.utils.data <span class="kw">import</span> DataLoader
+<span class="kw">from</span> torchvision <span class="kw">import</span> datasets, transforms
+
+<span class="cm"># 1. Device Setup</span>
+device = torch.<span class="cl">device</span>(<span class="st">'cuda'</span> <span class="kw">if</span> torch.cuda.<span class="fn">is_available</span>() <span class="kw">else</span> <span class="st">'cpu'</span>)
+
+<span class="cm"># 2. Data Pipeline: FashionMNIST (10 clothing categories)</span>
+transform = transforms.<span class="cl">Compose</span>([
+    transforms.<span class="cl">ToTensor</span>(),
+    transforms.<span class="cl">Normalize</span>((<span class="nu">0.2860</span>,), (<span class="nu">0.3530</span>,))  <span class="cm"># Dataset mean and std</span>
+])
+
+train_data = datasets.<span class="cl">FashionMNIST</span>(root=<span class="st">'./data'</span>, train=<span class="kw">True</span>, download=<span class="kw">True</span>, transform=transform)
+test_data  = datasets.<span class="cl">FashionMNIST</span>(root=<span class="st">'./data'</span>, train=<span class="kw">False</span>, download=<span class="kw">True</span>, transform=transform)
+
+train_loader = <span class="cl">DataLoader</span>(train_data, batch_size=<span class="nu">64</span>, shuffle=<span class="kw">True</span>)
+test_loader  = <span class="cl">DataLoader</span>(test_data, batch_size=<span class="nu">128</span>, shuffle=<span class="kw">False</span>)
+
+<span class="cm"># 3. Neural Network Architecture</span>
+<span class="kw">class</span> <span class="cl">FashionClassifier</span>(nn.<span class="cl">Module</span>):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self):
+        <span class="fn">super</span>().<span class="fn">__init__</span>()
+        self.features = nn.<span class="cl">Sequential</span>(
+            nn.<span class="cl">Conv2d</span>(<span class="nu">1</span>, <span class="nu">32</span>, kernel_size=<span class="nu">3</span>, padding=<span class="nu">1</span>),
+            nn.<span class="cl">BatchNorm2d</span>(<span class="nu">32</span>),
+            nn.<span class="cl">ReLU</span>(),
+            nn.<span class="cl">MaxPool2d</span>(<span class="nu">2</span>, <span class="nu">2</span>),  <span class="cm"># 28x28 -> 14x14</span>
+            
+            nn.<span class="cl">Conv2d</span>(<span class="nu">32</span>, <span class="nu">64</span>, kernel_size=<span class="nu">3</span>, padding=<span class="nu">1</span>),
+            nn.<span class="cl">BatchNorm2d</span>(<span class="nu">64</span>),
+            nn.<span class="cl">ReLU</span>(),
+            nn.<span class="cl">MaxPool2d</span>(<span class="nu">2</span>, <span class="nu">2</span>)   <span class="cm"># 14x14 -> 7x7</span>
+        )
+        self.classifier = nn.<span class="cl">Sequential</span>(
+            nn.<span class="cl">Flatten</span>(),
+            nn.<span class="cl">Linear</span>(<span class="nu">64</span> * <span class="nu">7</span> * <span class="nu">7</span>, <span class="nu">256</span>),
+            nn.<span class="cl">ReLU</span>(),
+            nn.<span class="cl">Dropout</span>(<span class="nu">0.3</span>),
+            nn.<span class="cl">Linear</span>(<span class="nu">256</span>, <span class="nu">10</span>)    <span class="cm"># 10 classes (raw logits)</span>
+        )
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        <span class="kw">return</span> self.classifier(self.features(x))
+
+<span class="cm"># 4. Training Engine</span>
+model = <span class="cl">FashionClassifier</span>().<span class="fn">to</span>(device)
+criterion = nn.<span class="cl">CrossEntropyLoss</span>()
+optimizer = optim.<span class="cl">AdamW</span>(model.<span class="fn">parameters</span>(), lr=<span class="nu">1e-3</span>, weight_decay=<span class="nu">1e-2</span>)
+scheduler = optim.lr_scheduler.<span class="cl">CosineAnnealingLR</span>(optimizer, T_max=<span class="nu">10</span>)
+
+best_acc = <span class="nu">0.0</span>
+epochs = <span class="nu">10</span>
+
+<span class="kw">for</span> epoch <span class="kw">in</span> <span class="fn">range</span>(epochs):
+    model.<span class="fn">train</span>()
+    running_loss, total, correct = <span class="nu">0.0</span>, <span class="nu">0</span>, <span class="nu">0</span>
+    <span class="kw">for</span> images, labels <span class="kw">in</span> train_loader:
+        images, labels = images.<span class="fn">to</span>(device), labels.<span class="fn">to</span>(device)
+        
+        optimizer.<span class="fn">zero_grad</span>()
+        outputs = model(images)
+        loss = criterion(outputs, labels)
+        loss.<span class="fn">backward</span>()
+        optimizer.<span class="fn">step</span>()
+        
+        running_loss += loss.<span class="fn">item</span>() * images.size(<span class="nu">0</span>)
+        _, preds = outputs.<span class="fn">max</span>(<span class="nu">1</span>)
+        correct += preds.<span class="fn">eq</span>(labels).<span class="fn">sum</span>().<span class="fn">item</span>()
+        total += labels.size(<span class="nu">0</span>)
+        
+    scheduler.<span class="fn">step</span>()
+    train_loss = running_loss / total
+    train_acc = correct / total
+    
+    <span class="cm"># Validation step</span>
+    model.<span class="fn">eval</span>()
+    val_loss, val_total, val_correct = <span class="nu">0.0</span>, <span class="nu">0</span>, <span class="nu">0</span>
+    <span class="kw">with</span> torch.<span class="fn">no_grad</span>():
+        <span class="kw">for</span> images, labels <span class="kw">in</span> test_loader:
+            images, labels = images.<span class="fn">to</span>(device), labels.<span class="fn">to</span>(device)
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            val_loss += loss.<span class="fn">item</span>() * images.size(<span class="nu">0</span>)
+            _, preds = outputs.<span class="fn">max</span>(<span class="nu">1</span>)
+            val_correct += preds.<span class="fn">eq</span>(labels).<span class="fn">sum</span>().<span class="fn">item</span>()
+            val_total += labels.size(<span class="nu">0</span>)
+            
+    val_acc = val_correct / val_total
+    <span class="fn">print</span>(<span class="st">f"Epoch {epoch+1:02d}/{epochs} | Train Acc: {train_acc:.3f} | Val Acc: {val_acc:.3f}"</span>)
+    
+    <span class="kw">if</span> val_acc > best_acc:
+        best_acc = val_acc
+        torch.<span class="fn">save</span>({
+            <span class="st">'model_state_dict'</span>: model.<span class="fn">state_dict</span>(),
+            <span class="st">'val_acc'</span>: val_acc,
+            <span class="st">'classes'</span>: train_data.classes
+        }, <span class="st">'best_fashion_model.pth'</span>)
+
+<span class="fn">print</span>(<span class="st">f"✅ Best Model Saved with Val Accuracy: {best_acc:.2%}"</span>)</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Evaluation Script (<code>evaluate.py</code>)</h4>
+            <p>Loads the saved checkpoint, computes per-class precision, recall, F1-scores, and generates an evaluation report.</p>
+            
+            <div class="code-block">
+              <div class="code-header">
+                <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span>evaluate.py</span>
+              </div>
+              <pre><span class="kw">import</span> torch
+<span class="kw">from</span> torch.utils.data <span class="kw">import</span> DataLoader
+<span class="kw">from</span> torchvision <span class="kw">import</span> datasets, transforms
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> classification_report, confusion_matrix
+<span class="kw">from</span> train <span class="kw">import</span> FashionClassifier
+
+device = torch.<span class="cl">device</span>(<span class="st">'cuda'</span> <span class="kw">if</span> torch.cuda.<span class="fn">is_available</span>() <span class="kw">else</span> <span class="st">'cpu'</span>)
+
+<span class="cm"># Load checkpoint</span>
+checkpoint = torch.<span class="fn">load</span>(<span class="st">'best_fashion_model.pth'</span>, map_location=device)
+model = <span class="cl">FashionClassifier</span>().<span class="fn">to</span>(device)
+model.<span class="fn">load_state_dict</span>(checkpoint[<span class="st">'model_state_dict'</span>])
+model.<span class="fn">eval</span>()
+
+transform = transforms.<span class="cl">Compose</span>([
+    transforms.<span class="cl">ToTensor</span>(),
+    transforms.<span class="cl">Normalize</span>((<span class="nu">0.2860</span>,), (<span class="nu">0.3530</span>,))
+])
+test_data = datasets.<span class="cl">FashionMNIST</span>(root=<span class="st">'./data'</span>, train=<span class="kw">False</span>, transform=transform)
+test_loader = <span class="cl">DataLoader</span>(test_data, batch_size=<span class="nu">128</span>, shuffle=<span class="kw">False</span>)
+
+all_preds, all_labels = [], []
+<span class="kw">with</span> torch.<span class="fn">no_grad</span>():
+    <span class="kw">for</span> images, labels <span class="kw">in</span> test_loader:
+        images = images.<span class="fn">to</span>(device)
+        outputs = model(images)
+        _, preds = outputs.<span class="fn">max</span>(<span class="nu">1</span>)
+        all_preds.<span class="fn">extend</span>(preds.<span class="fn">cpu</span>().<span class="fn">numpy</span>())
+        all_labels.<span class="fn">extend</span>(labels.<span class="fn">numpy</span>())
+
+<span class="cm"># Print precision, recall, and F1-score across all 10 fashion classes</span>
+classes = test_data.classes
+<span class="fn">print</span>(<span class="st">"📊 Classification Report:"</span>)
+<span class="fn">print</span>(<span class="fn">classification_report</span>(all_labels, all_preds, target_names=classes))</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>Production Serving with FastAPI (<code>serve.py</code>)</h4>
+            <p>Serves the PyTorch model via a high-performance REST API. Loads the model weights into memory at startup (lifespan), validates payloads via Pydantic, executes GPU/CPU inference with <code>torch.no_grad()</code>, and returns softmax class probabilities.</p>
+            
+            <div class="code-block">
+              <div class="code-header">
+                <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span>serve.py</span>
+              </div>
+              <pre><span class="cm"># pip install fastapi uvicorn pydantic torch torchvision</span>
+<span class="kw">from</span> fastapi <span class="kw">import</span> FastAPI, HTTPException
+<span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel, Field
+<span class="kw">from</span> contextlib <span class="kw">import</span> asynccontextmanager
+<span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn.functional <span class="kw">as</span> F
+<span class="kw">from</span> typing <span class="kw">import</span> List, Dict
+<span class="kw">from</span> train <span class="kw">import</span> FashionClassifier
+
+<span class="cm"># Global state dictionary</span>
+ml_models = {}
+
+<span class="kw">@asynccontextmanager</span>
+<span class="kw">async def</span> <span class="fn">lifespan</span>(app: FastAPI):
+    <span class="st">"""Load model weights on application startup; clean up on shutdown"""</span>
+    device = torch.<span class="cl">device</span>(<span class="st">'cuda'</span> <span class="kw">if</span> torch.cuda.<span class="fn">is_available</span>() <span class="kw">else</span> <span class="st">'cpu'</span>)
+    model = <span class="cl">FashionClassifier</span>().<span class="fn">to</span>(device)
+    checkpoint = torch.<span class="fn">load</span>(<span class="st">'best_fashion_model.pth'</span>, map_location=device)
+    model.<span class="fn">load_state_dict</span>(checkpoint[<span class="st">'model_state_dict'</span>])
+    model.<span class="fn">eval</span>()  <span class="cm"># lock eval mode</span>
+    
+    ml_models[<span class="st">'model'</span>] = model
+    ml_models[<span class="st">'device'</span>] = device
+    ml_models[<span class="st">'classes'</span>] = checkpoint.<span class="fn">get</span>(<span class="st">'classes'</span>, [
+        <span class="st">'T-shirt/top'</span>, <span class="st">'Trouser'</span>, <span class="st">'Pullover'</span>, <span class="st">'Dress'</span>, <span class="st">'Coat'</span>,
+        <span class="st">'Sandal'</span>, <span class="st">'Shirt'</span>, <span class="st">'Sneaker'</span>, <span class="st">'Bag'</span>, <span class="st">'Ankle boot'</span>
+    ])
+    <span class="fn">print</span>(<span class="st">f"🚀 PyTorch Model Loaded on {device}"</span>)
+    <span class="kw">yield</span>
+    ml_models.<span class="fn">clear</span>()
+
+app = <span class="cl">FastAPI</span>(title=<span class="st">"PyTorch Fashion Classifier API"</span>, version=<span class="st">"1.0"</span>, lifespan=lifespan)
+
+<span class="cm"># Schema for request: 784 normalized pixel floats (28x28 flattened image)</span>
+<span class="kw">class</span> <span class="cl">PredictRequest</span>(BaseModel):
+    pixels: List[<span class="fn">float</span>] = Field(..., description=<span class="st">"784 pixel values normalized between 0 and 1"</span>)
+
+<span class="kw">class</span> <span class="cl">PredictResponse</span>(BaseModel):
+    predicted_class: <span class="fn">int</span>
+    label: <span class="fn">str</span>
+    confidence: <span class="fn">float</span>
+    probabilities: Dict[<span class="fn">str</span>, <span class="fn">float</span>]
+
+<span class="kw">@app.get</span>(<span class="st">"/health"</span>)
+<span class="kw">def</span> <span class="fn">health_check</span>():
+    <span class="kw">return</span> {<span class="st">"status"</span>: <span class="st">"online"</span>, <span class="st">"device"</span>: <span class="fn">str</span>(ml_models[<span class="st">'device'</span>])}
+
+<span class="kw">@app.post</span>(<span class="st">"/predict"</span>, response_model=PredictResponse)
+<span class="kw">def</span> <span class="fn">predict</span>(payload: PredictRequest):
+    <span class="kw">if</span> <span class="fn">len</span>(payload.pixels) != <span class="nu">784</span>:
+        <span class="kw">raise</span> <span class="cl">HTTPException</span>(status_code=<span class="nu">400</span>, detail=<span class="st">"Expected exactly 784 pixel floats"</span>)
+    
+    device = ml_models[<span class="st">'device'</span>]
+    model = ml_models[<span class="st">'model'</span>]
+    classes = ml_models[<span class="st">'classes'</span>]
+    
+    <span class="cm"># Convert to tensor: shape (1, 1, 28, 28)</span>
+    input_tensor = torch.<span class="fn">tensor</span>(payload.pixels, dtype=torch.float32).<span class="fn">view</span>(<span class="nu">1</span>, <span class="nu">1</span>, <span class="nu">28</span>, <span class="nu">28</span>)
+    input_tensor = (input_tensor - <span class="nu">0.2860</span>) / <span class="nu">0.3530</span>  <span class="cm"># normalize</span>
+    input_tensor = input_tensor.<span class="fn">to</span>(device)
+    
+    <span class="kw">with</span> torch.<span class="fn">no_grad</span>():
+        logits = model(input_tensor)
+        probs = F.<span class="fn">softmax</span>(logits, dim=<span class="nu">1</span>)[<span class="nu">0</span>]
+        
+    conf, class_idx = probs.<span class="fn">max</span>(<span class="nu">0</span>)
+    prob_dict = {classes[i]: <span class="fn">round</span>(probs[i].<span class="fn">item</span>(), <span class="nu">4</span>) <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="nu">10</span>)}
+    
+    <span class="kw">return</span> <span class="cl">PredictResponse</span>(
+        predicted_class=class_idx.<span class="fn">item</span>(),
+        label=classes[class_idx.<span class="fn">item</span>()],
+        confidence=<span class="fn">round</span>(conf.<span class="fn">item</span>(), <span class="nu">4</span>),
+        probabilities=prob_dict
+    )
+
+<span class="cm"># Launch server: uvicorn serve:app --host 0.0.0.0 --port 8000</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="step-item">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <h4>Testing the Serving Endpoint (<code>client.py</code> &amp; curl)</h4>
+            <p>Verify that your served PyTorch model accepts requests and responds with sub-millisecond inference.</p>
+            
+            <div class="code-block">
+              <div class="code-header">
+                <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span>terminal / client.py</span>
+              </div>
+              <pre><span class="cm"># Option A: Test using curl</span>
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"pixels": [0.0, 0.1, 0.5, ... 784 floats ...]}'
+
+<span class="cm"># Option B: Test using Python requests</span>
+<span class="kw">import</span> requests
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+sample_pixels = np.random.<span class="fn">rand</span>(<span class="nu">784</span>).<span class="fn">tolist</span>()
+response = requests.<span class="fn">post</span>(
+    <span class="st">"http://localhost:8000/predict"</span>,
+    json={<span class="st">"pixels"</span>: sample_pixels}
+)
+<span class="fn">print</span>(response.<span class="fn">json</span>())
+<span class="cm"># Output:</span>
+<span class="cm"># {</span>
+<span class="cm">#   "predicted_class": 8,</span>
+<span class="cm">#   "label": "Bag",</span>
+<span class="cm">#   "confidence": 0.9412,</span>
+<span class="cm">#   "probabilities": {"T-shirt/top": 0.002, "Bag": 0.9412, ...}</span>
+<span class="cm"># }</span></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+

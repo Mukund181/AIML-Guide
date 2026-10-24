@@ -1,0 +1,611 @@
+<!-- ============================== CHAPTER 9: RAG & AGENTS ============================== -->
+  <div class="chapter ch9" id="ch9">
+    <div class="chapter-header">
+      <div class="chapter-num">09</div>
+      <div>
+        <h2>Retrieval-Augmented Generation (RAG) &amp; Evaluation</h2>
+        <div class="chapter-sub">Phase 4 (Weeks 10–13) · Ingestion, pgvector, Hybrid Search, Reranking &amp; Retrieval Evaluation</div>
+        <div style="margin-top: 8px;">
+          <span class="tag new">Weeks 10–13</span>
+          <span class="tag dl">Advanced RAG</span>
+          <span class="tag ml">Deliverable: Q&amp;A + Eval</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALLOUT: THE RAG IMPERATIVE -->
+    <div class="info-box note">
+      <strong>The Enterprise Reality: Why RAG Dominates</strong>
+      Over 85% of real-world enterprise AI systems rely on <strong>RAG</strong> rather than fine-tuning. Fine-tuning bakes static, non-verifiable facts into weights that can hallucinate. RAG decouples enterprise knowledge from the model: the vector database acts as dynamic external memory, and the LLM acts as an analytical reasoning engine that synthesizes answers with verifiable, deterministic citations.
+    </div>
+
+    <!-- ==================== SECTION 1: DOCUMENT INGESTION, CHUNKING & METADATA ==================== -->
+    <div class="section" id="rag-ingestion">
+      <h3>Document Ingestion, Chunking Strategies &amp; Metadata</h3>
+      <p>The performance of any RAG pipeline is bounded by the quality of its retrieval: <em>"Garbage in, garbage out"</em>. If your chunks are too large, context is diluted; if chunks are too small, crucial contextual meaning is severed.</p>
+
+      <h4>1. Chunking Strategies Compared</h4>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Chunking Strategy</th>
+              <th>How It Operates</th>
+              <th>Optimal Use Case</th>
+              <th>Trade-offs</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Fixed-Length Chunking</strong></td>
+              <td>Splits raw text strictly every \(N\) characters or tokens (e.g. 500 characters).</td>
+              <td>Prototyping, uniform unstructured text.</td>
+              <td>Cuts sentences and words in half, creating nonsensical sentence fragments at borders.</td>
+            </tr>
+            <tr>
+              <td><strong>Recursive Character Splitting</strong></td>
+              <td>Iteratively attempts splits on semantic separators: paragraphs (<code>\n\n</code>), sentences (<code>\n</code>, <code>. </code>), and spaces (<code> </code>).</td>
+              <td><strong>Industry standard default</strong> for articles, documentation, and essays.</td>
+              <td>Requires careful tuning of <code>chunk_size</code> (\(\approx 400\text{--}800\) tokens) and <code>chunk_overlap</code> (\(\approx 10\%\)).</td>
+            </tr>
+            <tr>
+              <td><strong>Document-Structure Aware</strong></td>
+              <td>Splits along Markdown headings (<code>#</code>, <code>##</code>), HTML tags, or JSON keys.</td>
+              <td>Technical manuals, API docs, structured reports.</td>
+              <td>Requires pre-converted clean markdown or HTML schemas.</td>
+            </tr>
+            <tr>
+              <td><strong>Semantic Chunking</strong></td>
+              <td>Computes sentence embedding distances; creates a new chunk whenever semantic similarity between adjacent sentences drops below a threshold.</td>
+              <td>Complex legal documents, multi-topic meeting transcripts.</td>
+              <td>Slower ingestion speed due to multiple embedding API calls.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>2. Metadata Enrichment — The Key to Deterministic Citations</h4>
+      <p>A chunk must never be stored as raw text alone. To support structured filtering (e.g. <em>"Search only documents published after Q2 2024"</em>) and precise source citations, every chunk must be tagged with metadata:</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>chunking_and_metadata.py</span>
+        </div>
+        <pre><span class="kw">from</span> langchain.text_splitter <span class="kw">import</span> RecursiveCharacterTextSplitter
+
+raw_document = <span class="st">"""
+[Title: Cloud Infrastructure Architecture Guide]
+[Section 1.2: Database Storage Options]
+PostgreSQL with pgvector provides ACID compliance alongside vector similarity search.
+It allows co-locating relational business data with high-dimensional embeddings.
+
+[Section 1.3: Distributed Caching]
+Redis provides in-memory sub-millisecond key-value caching. It is ideal for session 
+management and LLM semantic caching to eliminate redundant API calls.
+"""</span>
+
+<span class="cm"># 1. Initialize Recursive Splitter with 10% overlap</span>
+splitter = <span class="cl">RecursiveCharacterTextSplitter</span>(
+    chunk_size=<span class="nu">150</span>,
+    chunk_overlap=<span class="nu">20</span>,
+    separators=[<span class="st">"\n\n"</span>, <span class="st">"\n"</span>, <span class="st">". "</span>, <span class="st">" "</span>]
+)
+
+chunks = splitter.<span class="fn">split_text</span>(raw_document)
+
+<span class="cm"># 2. Attach enriched metadata payload to each chunk</span>
+enriched_chunks = []
+<span class="kw">for</span> i, text <span class="kw">in</span> <span class="fn">enumerate</span>(chunks):
+    enriched_chunks.<span class="fn">append</span>({
+        <span class="st">"chunk_id"</span>: <span class="st">f"doc_infra_ch_{i:03d}"</span>,
+        <span class="st">"text"</span>: text,
+        <span class="st">"metadata"</span>: {
+            <span class="st">"source"</span>: <span class="st">"cloud_infra_guide.pdf"</span>,
+            <span class="st">"page"</span>: <span class="nu">4</span>,
+            <span class="st">"section"</span>: <span class="st">"Storage & Caching"</span>,
+            <span class="st">"created_year"</span>: <span class="nu">2024</span>
+        }
+    })
+
+<span class="fn">print</span>(<span class="st">f"Generated {len(enriched_chunks)} enriched chunks with metadata."</span>)</pre>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 2: VECTOR DATABASES & PGVECTOR ==================== -->
+    <div class="section" id="rag-databases">
+      <h3>Vector Databases: ChromaDB, FAISS &amp; PostgreSQL with pgvector</h3>
+      <p>A Vector Database indexes high-dimensional vectors to perform <strong>Approximate Nearest Neighbor (ANN)</strong> search in sub-millisecond latency across millions of items.</p>
+
+      <h4>1. Production PostgreSQL with pgvector</h4>
+      <p>In real-world enterprise architectures, running a dedicated standalone vector database creates data sync headaches and dual-database complexity. The modern standard is using <strong>PostgreSQL with the <code>pgvector</code> extension</strong>, uniting relational SQL data, JSONB metadata, and vector similarity in a single ACID-compliant database.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>schema_pgvector.sql</span>
+        </div>
+        <pre><span class="cm">-- 1. Enable the pgvector extension</span>
+<span class="kw">CREATE EXTENSION IF NOT EXISTS</span> vector;
+
+<span class="cm">-- 2. Create documents table storing text, JSONB metadata, and 1536-dim embeddings</span>
+<span class="kw">CREATE TABLE</span> document_chunks (
+    id <span class="cl">BIGSERIAL PRIMARY KEY</span>,
+    chunk_id <span class="cl">VARCHAR(64) UNIQUE NOT NULL</span>,
+    content <span class="cl">TEXT NOT NULL</span>,
+    metadata <span class="cl">JSONB</span>,
+    embedding <span class="cl">vector(1536) NOT NULL</span>  <span class="cm">-- 1536 dimensions for text-embedding-3-small</span>
+);
+
+<span class="cm">-- 3. Build an HNSW (Hierarchical Navigable Small World) index for sub-millisecond cosine search</span>
+<span class="kw">CREATE INDEX</span> ON document_chunks 
+<span class="kw">USING</span> hnsw (embedding vector_cosine_ops)
+<span class="kw">WITH</span> (m = <span class="nu">16</span>, ef_construction = <span class="nu">64</span>);
+
+<span class="cm">-- 4. Hybrid query: combine metadata filtering with vector similarity (using <=> cosine distance)</span>
+<span class="kw">SELECT</span> 
+    chunk_id, 
+    content, 
+    metadata->><span class="st">'source'</span> <span class="kw">AS</span> source,
+    <span class="nu">1</span> - (embedding <=> <span class="st">':query_embedding'</span>) <span class="kw">AS</span> cosine_similarity
+<span class="kw">FROM</span> document_chunks
+<span class="kw">WHERE</span> (metadata->><span class="st">'created_year'</span>)::<span class="cl">int</span> >= <span class="nu">2024</span>
+<span class="kw">ORDER BY</span> embedding <=> <span class="st">':query_embedding'</span>
+<span class="kw">LIMIT</span> <span class="nu">5</span>;</pre>
+      </div>
+
+      <h4>2. ChromaDB — Embedded Vector Store for Python</h4>
+      <p>ChromaDB is the ideal embedded database for rapid development, testing, and local microservices:</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>chromadb_pipeline.py</span>
+        </div>
+        <pre><span class="cm"># pip install chromadb</span>
+<span class="kw">import</span> chromadb
+<span class="kw">from</span> chromadb.utils <span class="kw">import</span> embedding_functions
+
+<span class="cm"># 1. Create a persistent client saving to local disk</span>
+client = chromadb.<span class="cl">PersistentClient</span>(path=<span class="st">"./chroma_storage"</span>)
+emb_fn = embedding_functions.<span class="cl">DefaultEmbeddingFunction</span>()  <span class="cm"># uses all-MiniLM-L6-v2</span>
+
+collection = client.<span class="fn">get_or_create_collection</span>(name=<span class="st">"kb_docs"</span>, embedding_function=emb_fn)
+
+<span class="cm"># 2. Add documents with IDs and metadata</span>
+collection.<span class="fn">add</span>(
+    ids=[<span class="st">"c1"</span>, <span class="st">"c2"</span>],
+    documents=[
+        <span class="st">"LoRA decomposes weight updates into two low-rank matrices A and B."</span>,
+        <span class="st">"PostgreSQL pgvector provides native vector similarity search."</span>
+    ],
+    metadatas=[{<span class="st">"category"</span>: <span class="st">"fine-tuning"</span>}, {<span class="st">"category"</span>: <span class="st">"databases"</span>}]
+)
+
+<span class="cm"># 3. Query with metadata filter</span>
+results = collection.<span class="fn">query</span>(
+    query_texts=[<span class="st">"How does low rank adaptation reduce parameters?"</span>],
+    n_results=<span class="nu">1</span>,
+    where={<span class="st">"category"</span>: <span class="st">"fine-tuning"</span>}
+)
+<span class="fn">print</span>(<span class="st">"Retrieved document:"</span>, results[<span class="st">'documents'</span>][<span class="nu">0</span>][<span class="nu">0</span>])</pre>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 3: HYBRID SEARCH & RERANKING ==================== -->
+    <div class="section" id="rag-hybrid">
+      <h3>Dense Retrieval, BM25, Hybrid Search &amp; Reranking</h3>
+      <p>Pure vector search is not a magic bullet. Vector similarity searches for <em>semantic concepts</em>, but fails on exact keyword searches (e.g. error code <code>ERR_404_TIMEOUT</code>, model part number <code>RTX-4090</code>, or person names). <strong>Production RAG requires Hybrid Search + Cross-Encoder Reranking</strong>.</p>
+
+      <h4>1. The Two-Stage Hybrid Retrieval Pipeline</h4>
+      <div class="pipeline">
+        <div class="pipe-step"><div class="pipe-box" style="border-color:#5c7cfa;color:#5c7cfa">User Query</div></div>
+        <div class="pipe-arrow"></div>
+        <div class="pipe-step"><div class="pipe-box">Dense Vector Search<br>(Top 25)</div></div>
+        <div class="pipe-arrow"></div>
+        <div class="pipe-step"><div class="pipe-box">Sparse BM25 Search<br>(Top 25)</div></div>
+        <div class="pipe-arrow"></div>
+        <div class="pipe-step"><div class="pipe-box">Reciprocal Rank Fusion<br>(Combined Top 20)</div></div>
+        <div class="pipe-arrow"></div>
+        <div class="pipe-step"><div class="pipe-box" style="border-color:#fcc419;color:#fcc419">Cross-Encoder Reranker<br>(Score pairs jointly)</div></div>
+        <div class="pipe-arrow"></div>
+        <div class="pipe-step"><div class="pipe-box" style="border-color:#51cf66;color:#51cf66">Final Top 3 Chunks \(\to\) LLM</div></div>
+      </div>
+
+      <h4>2. Reciprocal Rank Fusion (RRF)</h4>
+      <p>RRF normalizes and fuses rankings from disparate scoring models (e.g. BM25 unbounded scores vs Cosine bounded scores) without requiring calibration constants:</p>
+
+      <div class="formula">\text{RRF\_Score}(d \in D) = \sum_{m \in \{\text{Dense}, \text{BM25}\}} \frac{1}{k + \text{rank}_m(d)} \qquad (k \approx 60)</div>
+
+      <h4>3. Bi-Encoder vs Cross-Encoder Reranking</h4>
+      <ul>
+        <li><strong>Bi-Encoder (Fast Retrieval):</strong> Encodes query and documents independently into vectors: \(\mathbf{q} = f(Q)\), \(\mathbf{d} = f(D)\). Fast ($O(1)$ lookup via vector index), but misses cross-token interactions between query and document.</li>
+        <li><strong>Cross-Encoder (High-Accuracy Reranking):</strong> Passes the query and candidate document <em>together</em> through full self-attention layers: \(\text{Score} = \text{Model}(Q \circ D)\). Too slow to search 1,000,000 documents, but fast enough to rerank the top 20 candidates into the definitive top 3.</li>
+      </ul>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>reranking_cross_encoder.py</span>
+        </div>
+        <pre><span class="kw">from</span> sentence_transformers <span class="kw">import</span> CrossEncoder
+
+<span class="cm"># Load pretrained cross-encoder reranker</span>
+reranker = <span class="cl">CrossEncoder</span>(<span class="st">'cross-encoder/ms-marco-MiniLM-L-6-v2'</span>)
+
+query = <span class="st">"What optimizer decouples weight decay from gradient updates?"</span>
+retrieved_candidates = [
+    <span class="st">"SGD with momentum updates parameters using velocity vectors."</span>,
+    <span class="st">"AdamW decouples weight decay directly from gradient updates."</span>,
+    <span class="st">"RMSprop divides the learning rate by the running average of squared gradients."</span>
+]
+
+<span class="cm"># Predict similarity scores jointly</span>
+pairs = [[query, doc] <span class="kw">for</span> doc <span class="kw">in</span> retrieved_candidates]
+scores = reranker.<span class="fn">predict</span>(pairs)
+
+<span class="cm"># Sort by score</span>
+ranked = <span class="fn">sorted</span>(<span class="fn">zip</span>(retrieved_candidates, scores), key=<span class="kw">lambda</span> x: x[<span class="nu">1</span>], reverse=<span class="kw">True</span>)
+<span class="kw">for</span> doc, score <span class="kw">in</span> ranked:
+    <span class="fn">print</span>(<span class="st">f"Score: {score:+.3f} | {doc}"</span>)</pre>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 4: GROUNDED ANSWERS & RETRIEVAL EVALUATION ==================== -->
+    <div class="section" id="rag-eval">
+      <h3>Grounded Answers, Source Citations &amp; Evaluation Metrics</h3>
+      <p>A production RAG system is evaluated on two distinct axes: <strong>Retrieval Quality</strong> (did we retrieve the right chunks?) and <strong>Generation Quality</strong> (did the LLM accurately answer based solely on those chunks without hallucinating?).</p>
+
+      <h4>1. The RAG Triad Evaluation Framework</h4>
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="cc-icon">🎯</div>
+          <h4>Context Relevance</h4>
+          <p>Measures whether the retrieved chunks are relevant to the user query. Low relevance indicates faulty retrieval, noisy chunking, or poor embedding models.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">🛡️</div>
+          <h4>Groundedness (Faithfulness)</h4>
+          <p>Measures whether every factual claim in the generated answer can be mathematically traced back to the retrieved context. Eliminates hallucinations.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">💬</div>
+          <h4>Answer Relevance</h4>
+          <p>Measures whether the generated answer directly addresses the user's original question without meandering or repeating irrelevant context.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">📖</div>
+          <h4>Citation Verification</h4>
+          <p>Every generated answer must output exact bracketed citations (e.g. <code>[Source: doc.pdf, Page 4]</code>). Automated regex checks verify that cited claims exist in retrieved text.</p>
+        </div>
+      </div>
+
+      <h4>2. Retrieval Evaluation Metrics: Hit Rate @ K &amp; MRR</h4>
+      <p>To scientifically benchmark a retrieval engine, we test it against a ground-truth dataset of known (query, relevant_chunk_id) pairs:</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Formula</th>
+              <th>What It Measures</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Hit Rate @ K</strong></td>
+              <td>\(\text{HitRate}@K = \frac{1}{|Q|}\sum_{i=1}^{|Q|} \mathbb{I}(\text{rank}_i \le K)\)</td>
+              <td>The percentage of queries where the true ground-truth document was present in the top \(K\) retrieved items. (Binary success indicator).</td>
+            </tr>
+            <tr>
+              <td><strong>Mean Reciprocal Rank (MRR)</strong></td>
+              <td>\(\text{MRR} = \frac{1}{|Q|}\sum_{i=1}^{|Q|} \frac{1}{\text{rank}_i}\)</td>
+              <td>Penalizes models that retrieve the right document at rank 5 instead of rank 1. Gives higher score when relevant chunk is at the very top.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 5: RAG VERSUS FINE-TUNING ==================== -->
+    <div class="section" id="rag-vs-fine">
+      <h3>RAG versus Fine-Tuning: Decision Framework</h3>
+      <p>A classic technical interview question: <em>"Should we solve this problem using RAG, Fine-Tuning, or both?"</em> Use this architectural decision matrix:</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Dimension</th>
+              <th>RAG (Retrieval-Augmented Generation)</th>
+              <th>Fine-Tuning (PEFT / LoRA)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Primary Purpose</strong></td>
+              <td>Injecting <strong>dynamic factual knowledge</strong>, proprietary documentation, private company data.</td>
+              <td>Adapting <strong>style, tone, specialized syntax, dialect</strong>, or output schema (e.g. SQL dialect).</td>
+            </tr>
+            <tr>
+              <td><strong>Knowledge Freshness</strong></td>
+              <td><strong>Real-time</strong>. Simply update or insert chunks in vector DB. No training required.</td>
+              <td><strong>Static</strong>. Re-training and model redeployment required to update facts.</td>
+            </tr>
+            <tr>
+              <td><strong>Auditability &amp; Citations</strong></td>
+              <td><strong>100% Verifiable</strong>. Every claim links to an exact chunk and page citation.</td>
+              <td><strong>Black Box</strong>. Cannot trace which weight generated which statement; prone to hallucinated facts.</td>
+            </tr>
+            <tr>
+              <td><strong>Cost &amp; Complexity</strong></td>
+              <td>Lower compute costs; requires vector database and embedding pipeline infrastructure.</td>
+              <td>Higher training compute costs; requires curated dataset of thousands of input-output pairs.</td>
+            </tr>
+            <tr>
+              <td><strong>Best Combined Strategy</strong></td>
+              <td colspan="2"><strong>Fine-tune for style/format + RAG for facts:</strong> Fine-tune a 7B model to output structured medical responses, but use RAG to retrieve the patient's real medical history.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 6: DELIVERABLE: RAG WITH CITATIONS & EVAL ==================== -->
+    <div class="section" id="proj-ch9">
+      <h3>Phase 4 Deliverable: Document Q&amp;A System with Citations &amp; Retrieval Evaluation</h3>
+      <p>The Phase 4 capstone deliverable: Build a production-grade <strong>Document Question-Answering system with strict inline citations</strong> and an automated <strong>Retrieval Evaluation dataset benchmarking Hit Rate @ K and MRR</strong>.</p>
+
+      <div class="steps">
+        <!-- STEP 1 -->
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Document Q&amp;A Engine with Source Citations (<code>rag_qa_system.py</code>)</h4>
+            <p>Embeds documents with metadata, retrieves top chunks using cosine similarity, and formats a grounded prompt enforcing strict citation brackets <code>[Source: doc, Page X]</code>.</p>
+            
+            <div class="code-block">
+              <div class="code-header">
+                <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span>rag_qa_system.py</span>
+              </div>
+              <pre><span class="kw">import</span> os
+<span class="kw">import</span> json
+<span class="kw">from</span> openai <span class="kw">import</span> OpenAI
+<span class="kw">from</span> sentence_transformers <span class="kw">import</span> SentenceTransformer, util
+<span class="kw">import</span> torch
+
+<span class="kw">class</span> <span class="cl">GroundedRAGSystem</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, model_name=<span class="st">'all-MiniLM-L6-v2'</span>):
+        self.encoder = <span class="cl">SentenceTransformer</span>(model_name)
+        self.client = <span class="cl">OpenAI</span>()
+        self.corpus_chunks = []
+        self.corpus_embeddings = <span class="kw">None</span>
+
+    <span class="kw">def</span> <span class="fn">ingest_documents</span>(self, documents):
+        <span class="st">"""Store documents with metadata and precompute embeddings"""</span>
+        self.corpus_chunks = documents
+        texts = [doc[<span class="st">'text'</span>] <span class="kw">for</span> doc <span class="kw">in</span> documents]
+        self.corpus_embeddings = self.encoder.<span class="fn">encode</span>(texts, convert_to_tensor=<span class="kw">True</span>)
+        <span class="fn">print</span>(<span class="st">f"✅ Ingested {len(documents)} document chunks into vector index."</span>)
+
+    <span class="kw">def</span> <span class="fn">retrieve</span>(self, query: str, top_k: int = <span class="nu">3</span>):
+        <span class="st">"""Retrieve top_k chunks based on cosine similarity"""</span>
+        q_emb = self.encoder.<span class="fn">encode</span>(query, convert_to_tensor=<span class="kw">True</span>)
+        cos_scores = util.<span class="fn">cos_sim</span>(q_emb, self.corpus_embeddings)[<span class="nu">0</span>]
+        top_results = torch.<span class="fn">topk</span>(cos_scores, k=<span class="fn">min</span>(top_k, <span class="fn">len</span>(self.corpus_chunks)))
+        
+        retrieved = []
+        <span class="kw">for</span> score, idx <span class="kw">in</span> <span class="fn">zip</span>(top_results.values, top_results.indices):
+            chunk = self.corpus_chunks[idx.<span class="fn">item</span>()]
+            retrieved.<span class="fn">append</span>({
+                <span class="st">"chunk_id"</span>: chunk[<span class="st">"chunk_id"</span>],
+                <span class="st">"text"</span>: chunk[<span class="st">"text"</span>],
+                <span class="st">"source"</span>: chunk[<span class="st">"metadata"</span>][<span class="st">"source"</span>],
+                <span class="st">"page"</span>: chunk[<span class="st">"metadata"</span>][<span class="st">"page"</span>],
+                <span class="st">"score"</span>: score.<span class="fn">item</span>()
+            })
+        <span class="kw">return</span> retrieved
+
+    <span class="kw">def</span> <span class="fn">answer_question</span>(self, query: str):
+        <span class="st">"""Perform grounded generation enforcing strict inline citations"""</span>
+        retrieved_chunks = self.<span class="fn">retrieve</span>(query, top_k=<span class="nu">3</span>)
+        
+        <span class="cm"># Build structured context block with explicit citation tags</span>
+        context_str = <span class="st">""</span>
+        <span class="kw">for</span> c <span class="kw">in</span> retrieved_chunks:
+            context_str += <span class="st">f"--- [Doc: {c['source']}, Page: {c['page']}, ID: {c['chunk_id']}] ---\n{c['text']}\n\n"</span>
+            
+        system_prompt = (
+            <span class="st">"You are an accurate, grounded assistant. Answer the user question based SOLELY on the "</span>
+            <span class="st">"provided context. You MUST provide inline citations in the format [Doc: filename, Page: X] "</span>
+            <span class="st">"for EVERY factual statement. If the answer cannot be found in the context, output: "</span>
+            <span class="st">"'I cannot answer this question based on the provided documents.'"</span>
+        )
+        
+        user_prompt = <span class="st">f"Context:\n{context_str}\nQuestion: {query}\nAnswer with citations:"</span>
+        
+        response = self.client.chat.completions.<span class="fn">create</span>(
+            model=<span class="st">"gpt-4o"</span>,
+            messages=[
+                {<span class="st">"role"</span>: <span class="st">"system"</span>, <span class="st">"content"</span>: system_prompt},
+                {<span class="st">"role"</span>: <span class="st">"user"</span>,   <span class="st">"content"</span>: user_prompt}
+            ],
+            temperature=<span class="nu">0.0</span>  <span class="cm"># Deterministic output</span>
+        )
+        <span class="kw">return</span> {
+            <span class="st">"answer"</span>: response.choices[<span class="nu">0</span>].message.content,
+            <span class="st">"retrieved_chunks"</span>: retrieved_chunks
+        }</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Curated Evaluation Dataset (<code>eval_dataset.json</code>)</h4>
+            <p>A benchmark evaluation dataset containing sample documents across AI domains, paired with test questions, target answers, and the expected ground-truth <code>relevant_chunk_ids</code>.</p>
+            
+            <div class="code-block">
+              <div class="code-header">
+                <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span>eval_dataset.json</span>
+              </div>
+              <pre>{
+  <span class="st">"documents"</span>: [
+    {
+      <span class="st">"chunk_id"</span>: <span class="st">"chunk_001"</span>,
+      <span class="st">"text"</span>: <span class="st">"LoRA decomposes full weight updates into low-rank matrices A and B with rank r << d, reducing trainable parameters by 99%."</span>,
+      <span class="st">"metadata"</span>: {<span class="st">"source"</span>: <span class="st">"peft_paper.pdf"</span>, <span class="st">"page"</span>: <span class="nu">2</span>}
+    },
+    {
+      <span class="st">"chunk_id"</span>: <span class="st">"chunk_002"</span>,
+      <span class="st">"text"</span>: <span class="st">"PostgreSQL pgvector provides HNSW indexing for sub-millisecond approximate nearest neighbor cosine distance search."</span>,
+      <span class="st">"metadata"</span>: {<span class="st">"source"</span>: <span class="st">"postgres_guide.pdf"</span>, <span class="st">"page"</span>: <span class="nu">14</span>}
+    },
+    {
+      <span class="st">"chunk_id"</span>: <span class="st">"chunk_003"</span>,
+      <span class="st">"text"</span>: <span class="st">"AdamW decouples weight decay from the gradient update to prevent L2 regularization distortions in Adam."</span>,
+      <span class="st">"metadata"</span>: {<span class="st">"source"</span>: <span class="st">"optimizers_deep_dive.pdf"</span>, <span class="st">"page"</span>: <span class="nu">7</span>}
+    },
+    {
+      <span class="st">"chunk_id"</span>: <span class="st">"chunk_004"</span>,
+      <span class="st">"text"</span>: <span class="st">"Rotary Position Embedding (RoPE) rotates queries and keys in complex plane, naturally preserving relative token distances."</span>,
+      <span class="st">"metadata"</span>: {<span class="st">"source"</span>: <span class="st">"roformer_paper.pdf"</span>, <span class="st">"page"</span>: <span class="nu">3</span>}
+    }
+  ],
+  <span class="st">"test_queries"</span>: [
+    {
+      <span class="st">"query"</span>: <span class="st">"How does LoRA reduce trainable parameters during LLM fine-tuning?"</span>,
+      <span class="st">"target_chunk_id"</span>: <span class="st">"chunk_001"</span>
+    },
+    {
+      <span class="st">"query"</span>: <span class="st">"What index type enables sub-millisecond vector search in pgvector?"</span>,
+      <span class="st">"target_chunk_id"</span>: <span class="st">"chunk_002"</span>
+    },
+    {
+      <span class="st">"query"</span>: <span class="st">"Why was AdamW introduced to replace standard Adam with L2 regularization?"</span>,
+      <span class="st">"target_chunk_id"</span>: <span class="st">"chunk_003"</span>
+    },
+    {
+      <span class="st">"query"</span>: <span class="st">"How does Rotary Position Embedding encode token order in modern Transformers?"</span>,
+      <span class="st">"target_chunk_id"</span>: <span class="st">"chunk_004"</span>
+    }
+  ]
+}</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>Retrieval Evaluation Pipeline (<code>evaluate_retrieval.py</code>)</h4>
+            <p>Automates testing of the vector retrieval engine over the benchmark dataset, calculating <strong>Hit Rate @ 1</strong>, <strong>Hit Rate @ 3</strong>, and <strong>Mean Reciprocal Rank (MRR)</strong>.</p>
+            
+            <div class="code-block">
+              <div class="code-header">
+                <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span>evaluate_retrieval.py</span>
+              </div>
+              <pre><span class="kw">import</span> json
+<span class="kw">from</span> rag_qa_system <span class="kw">import</span> GroundedRAGSystem
+
+<span class="kw">def</span> <span class="fn">run_retrieval_benchmark</span>():
+    <span class="cm"># 1. Load benchmark dataset</span>
+    <span class="kw">with</span> <span class="fn">open</span>(<span class="st">'eval_dataset.json'</span>, <span class="st">'r'</span>) <span class="kw">as</span> f:
+        dataset = json.<span class="fn">load</span>(f)
+        
+    rag = <span class="cl">GroundedRAGSystem</span>()
+    rag.<span class="fn">ingest_documents</span>(dataset[<span class="st">"documents"</span>])
+    
+    queries = dataset[<span class="st">"test_queries"</span>]
+    k_values = [<span class="nu">1</span>, <span class="nu">3</span>]
+    hits = {k: <span class="nu">0</span> <span class="kw">for</span> k <span class="kw">in</span> k_values}
+    reciprocal_ranks = []
+    
+    <span class="fn">print</span>(<span class="st">"\n--- Running Evaluation Queries ---"</span>)
+    <span class="kw">for</span> item <span class="kw">in</span> queries:
+        query = item[<span class="st">"query"</span>]
+        target_id = item[<span class="st">"target_chunk_id"</span>]
+        
+        <span class="cm"># Retrieve top 3 candidates</span>
+        results = rag.<span class="fn">retrieve</span>(query, top_k=<span class="nu">3</span>)
+        retrieved_ids = [r[<span class="st">"chunk_id"</span>] <span class="kw">for</span> r <span class="kw">in</span> results]
+        
+        <span class="cm"># Check Hit Rate @ K</span>
+        <span class="kw">for</span> k <span class="kw">in</span> k_values:
+            <span class="kw">if</span> target_id <span class="kw">in</span> retrieved_ids[:k]:
+                hits[k] += <span class="nu">1</span>
+                
+        <span class="cm"># Check Reciprocal Rank</span>
+        <span class="kw">if</span> target_id <span class="kw">in</span> retrieved_ids:
+            rank = retrieved_ids.<span class="fn">index</span>(target_id) + <span class="nu">1</span>
+            reciprocal_ranks.<span class="fn">append</span>(<span class="nu">1.0</span> / rank)
+        <span class="kw">else</span>:
+            reciprocal_ranks.<span class="fn">append</span>(<span class="nu">0.0</span>)
+            
+        <span class="fn">print</span>(<span class="st">f"Query: '{query[:45]}...' -> Target in top-3: {target_id in retrieved_ids}"</span>)
+        
+    total_q = <span class="fn">len</span>(queries)
+    hit_rate_1 = hits[<span class="nu">1</span>] / total_q
+    hit_rate_3 = hits[<span class="nu">3</span>] / total_q
+    mrr = <span class="fn">sum</span>(reciprocal_ranks) / total_q
+    
+    <span class="fn">print</span>(<span class="st">"\n=========================================="</span>)
+    <span class="fn">print</span>(<span class="st">"📊 RETRIEVAL EVALUATION SCORECARD"</span>)
+    <span class="fn">print</span>(<span class="st">"=========================================="</span>)
+    <span class="fn">print</span>(<span class="st">f"Total Evaluation Queries: {total_q}"</span>)
+    <span class="fn">print</span>(<span class="st">f"Hit Rate @ 1:             {hit_rate_1:.2%}"</span>)
+    <span class="fn">print</span>(<span class="st">f"Hit Rate @ 3:             {hit_rate_3:.2%}"</span>)
+    <span class="fn">print</span>(<span class="st">f"Mean Reciprocal Rank (MRR): {mrr:.4f}"</span>)
+    <span class="fn">print</span>(<span class="st">"=========================================="</span>)
+
+<span class="kw">if</span> __name__ == <span class="st">'__main__'</span>:
+    <span class="fn">run_retrieval_benchmark</span>()</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="step-item">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <h4>Live Q&amp;A Execution with Inline Citations</h4>
+            <p>Demonstrating how the Q&amp;A system generates answers strictly backed by cited sources:</p>
+            
+            <div class="code-block">
+              <div class="code-header">
+                <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span>demo_qa_execution.py</span>
+              </div>
+              <pre><span class="kw">from</span> rag_qa_system <span class="kw">import</span> GroundedRAGSystem
+<span class="kw">import</span> json
+
+<span class="kw">with</span> <span class="fn">open</span>(<span class="st">'eval_dataset.json'</span>, <span class="st">'r'</span>) <span class="kw">as</span> f:
+    dataset = json.<span class="fn">load</span>(f)
+
+rag = <span class="cl">GroundedRAGSystem</span>()
+rag.<span class="fn">ingest_documents</span>(dataset[<span class="st">"documents"</span>])
+
+query = <span class="st">"How does LoRA reduce training parameters and what indexing should I use in pgvector?"</span>
+result = rag.<span class="fn">answer_question</span>(query)
+
+<span class="fn">print</span>(<span class="st">"\n🤖 Grounded Answer with Citations:"</span>)
+<span class="fn">print</span>(result[<span class="st">"answer"</span>])
+
+<span class="cm"># Example Generated Output:</span>
+<span class="cm"># LoRA decomposes full weight updates into two low-rank matrices A and B with rank r << d, </span>
+<span class="cm"># reducing trainable parameters by 99% [Doc: peft_paper.pdf, Page: 2]. For vector search in </span>
+<span class="cm"># pgvector, you should use HNSW indexing to enable sub-millisecond approximate nearest </span>
+<span class="cm"># neighbor cosine distance search [Doc: postgres_guide.pdf, Page: 14].</span></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
