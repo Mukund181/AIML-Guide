@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI/ML Complete Study Guide â€“ Mukund</title>
+<meta name="description" content="A comprehensive beginner-friendly study guide covering AI, ML, Deep Learning, NLP, Generative AI, RAG, Agents, and Deployment with code examples.">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h1>AI/ML Complete Guide</h1>
+      <button id="themeToggle" onclick="toggleTheme()" title="Toggle Light/Dark Mode">â˜€ï¸</button>
+    </div>
+    <p>From Zero to Hero Â· 12 Chapters</p>
+  </div>
+
+  <div class="search-box">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="searchInput" placeholder="Search topics..." oninput="searchTopics(this.value)">
+  </div>
+
+  <!-- Ch 0 -->
+  <div class="nav-group open">
+    <div class="nav-section active" onclick="toggleNav(this); scrollTo('ch0')">
+      <span class="dot" style="background:#22b8cf"></span> What is AI/ML?
+    </div>
+    <div class="nav-sub">
+      <a href="#ai-what">What is AI?</a>
+      <a href="#ai-history">Brief History</a>
+      <a href="#ai-types">Types of AI</a>
+      <a href="#ai-why">Why Learn AI/ML?</a>
+      <a href="#ai-real">Real-World Uses</a>
+      <a href="#ai-ethics">Ethics & Bias</a>
+    </div>
+  </div>
+
+  <!-- Ch 1 -->
+  <div class="nav-group">
+    <div class="nav-section" onclick="toggleNav(this); scrollTo('ch1')">
+      <span class="dot" style="background:#94d82d"></span> Setting Up
+    </div>
+    <div class="nav-sub">
+      <a href="#setup-python">Install Python</a>
+      <a href="#setup-venv">Virtual Environments</a>
+      <a href="#setup-jupyter">Jupyter Notebook</a>
+      <a href="#setup-libs">Key Libraries</a>
+      <a href="#setup-first">First Program</a>
+    </div>
+  </div>
+
+  <!-- Ch 2 -->
+  <div class="nav-group">
+    <div class="nav-section" onclick="toggleNav(this); scrollTo('ch2')">
+      <span class="dot" style="background:#ffa94d"></span> Python Basics
+    </div>
+    <div class="nav-sub">
+      <a href="#py-vars">Variables &amp; Data Types</a>
+      <a href="#py-strings">Strings</a>
+      <a href="#py-loops">Loops &amp; Conditions</a>
+      <a href="#py-generators">Iterators &amp; Generators</a>
+      <a href="#py-func">Functions</a>
+      <a href="#py-oop">Classes &amp; OOP</a>
+      <a href="#py-typing">Typing &amp; Modules</a>
+      <a href="#py-errors">Error Handling</a>
+      <a href="#py-decorators">Decorators (Advanced)</a>
+      <a href="#py-fileio">File Handling</a>
+      <a href="#py-pytest">Testing with pytest</a>
+      <a href="#py-git">Git &amp; GitHub</a>
+    </div>
+  </div>
+
+  <!-- Ch 3 -->
+  <div class="nav-group">
+    <div class="nav-section" onclick="toggleNav(this); scrollTo('ch3')">
+      <span class="dot" style="background:#f06595"></span> Python Libraries
+    </div>
+    <div class="nav-sub">
+      <a href="#lib-numpy">NumPy</a>
+      <a href="#lib-pandas">Pandas</a>
+      <a href="#lib-pandas-adv">Advanced Pandas</a>
+      <a href="#lib-matplotlib">Matplotlib &amp; Seaborn</a>
+      <a href="#proj-ch3">Chapter Project</a>
+    </div>
+  </div>
+
+  <!-- Ch SQL -->
+  <div class="nav-group">
+    <div class="nav-section" onclick="toggleNav(this); scrollTo('ch-sql')">
+      <span class="dot" style="background:#20c997"></span> SQL for Data Science
+    </div>
+    <div class="nav-sub">
+      <a href="#sql-basics">SELECT &amp; Filtering</a>
+      <a href="#sql-joins">Joins</a>
+      <a href="#sql-agg">Aggregations &amp; GROUP BY</a>
+      <a href="#sql-cte">CTEs &amp; Subqueries</a>
+      <a href="#sql-window">Window Functions</a>
+      <a href="#sql-index">Indexes &amp; Optimization</a>
+      <a href="#proj-ch-sql">Phase 1 Deliverable (Python &amp; SQL)</a>
+    </div>
+  </div>
+
+  <!-- Ch Math -->
+  <div class="nav-group">
+    <div class="nav-section" onclick="toggleNav(this); scrollTo('ch-math')">
+      <span class="dot" style="background:#fcc419"></span> Math for ML
+    </div>
+    <div class="nav-sub">
+      <a href="#math-linear">Vectors &amp; Matrices</a>
+      <a href="#math-stats">Stats &amp; Probability</a>
+      <a href="#math-bayes">Bayes' Theorem</a>
+      <a href="#math-calculus">Derivatives &amp; Gradients</a>
+      <a href="#math-gradient">Gradient Descent</a>
+    </div>
+  </div>
+  <!-- Ch 4 -->
+  <div class="nav-group">
+    <div class="nav-section" onclick="toggleNav(this); scrollTo('ch4')">
+      <span class="dot" style="background:#cc5de8"></span> Data Preprocessing
+    </div>
+    <div class="nav-sub">
+      <a href="#pre-clean">Cleaning Data</a>
+      <a href="#pre-encode">Encoding</a>
+      <a href="#pre-scale">Feature Scaling</a>
+      <a href="#pre-split">Train/Test Split</a>
+      <a href="#pre-leakage">Data Leakage</a>
+      <a href="#pre-feat">Feature Engineering</a>
+      <a href="#pre-imbalance">Imbalanced Data (Adv)</a>
+      <a href="#proj-ch4">Chapter Project</a>
+    </div>
+  </div>
+
+  <!-- Ch 5 -->
+  <div class="nav-group">
+    <div class="nav-section" onclick="toggleNav(this); scrollTo('ch5')">
+      <span class="dot" style="background:#4ecdc4"></span> Machine Learning
+    </div>
+    <div class="nav-sub">
+      <a href="#ml-types">Types of ML</a>
+      <a href="#ml-linear">Linear Regression</a>
+      <a href="#ml-logistic">Logistic Regression</a>
+      <a href="#ml-tree">Decision Trees</a>
+      <a href="#ml-svm">SVM</a>
+      <a href="#ml-knn">KNN</a>
+      <a href="#ml-naive">Naive Bayes</a>
+      <a href="#ml-cluster">Clustering</a>
+      <a href="#ml-dbscan">DBSCAN &amp; PCA</a>
+      <a href="#ml-xgboost">XGBoost (Adv)</a>
+      <a href="#ml-regularize">Regularization L1/L2</a>
+      <a href="#ml-eval">Evaluation</a>
+      <a href="#ml-scratch">Linear &amp; Logistic From Scratch</a>
+      <a href="#proj-ch5">Phase 2 Capstone Deliverable</a>
+    </div>
+  </div>
+
+  <!-- Ch 6: Phase 3 Deep Learning & PyTorch -->
+  <div class="nav-group">
+    <div class="nav-section" onclick="toggleNav(this); scrollTo('ch6')">
+      <span class="dot" style="background:#7c6ff7"></span> Deep Learning &amp; PyTorch
+    </div>
+    <div class="nav-sub">
+      <a href="#dl-perceptrons">Perceptrons &amp; Activations</a>
+      <a href="#dl-backprop">Backprop &amp; Graphs</a>
+      <a href="#dl-loss-optim">Losses &amp; Learning Rates</a>
+      <a href="#dl-reg-norm">SGD, Adam, Norm &amp; Dropout</a>
+      <a href="#dl-pytorch-core">PyTorch Tensors &amp; Autograd</a>
+      <a href="#dl-data-train">Datasets &amp; Training Loops</a>
+      <a href="#dl-cnn-transfer">CNNs &amp; Transfer Learning</a>
+      <a href="#dl-transformer">Embeddings &amp; Transformers</a>
+      <a href="#dl-tf-rosetta">Reading TF/Keras vs PyTorch</a>
+      <a href="#proj-ch6">Phase 3 Deliverable (Train &amp; Serve)</a>
+    </div>
+  </div>
+
+  <!-- Ch 7: Phase 4 NLP & Transformers -->
+  <div class="nav-group">
+    <div class="nav-section" onclick="toggleNav(this); scrollTo('ch7')">
+      <span class="dot" style="background:#5c7cfa"></span> NLP &amp; Transformers
+    </div>
+    <div class="nav-sub">
+      <a href="#nlp-basics">Preprocessing &amp; BPE</a>
+      <a href="#nlp-bow">BoW &amp; TF-IDF</a>
+      <a href="#nlp-embed">Word2Vec &amp; Embeddings</a>
+      <a href="#nlp-attention">Attention &amp; RoPE</a>
+      <a href="#nlp-transformers">BERT vs GPT vs T5</a>
+      <a href="#nlp-sentiment">Fine-Tuning BERT</a>
+    </div>
+  </div>
+
+  <!-- Ch 8: Phase 4 Generative AI & LLMs -->
+  <div class="nav-group">
+    <div class="nav-section" onclick="toggleNav(this); scrollTo('ch8')">
+      <span class="dot" style="background:#ff6b6b"></span> Generative AI &amp; LLMs
+    </div>
+    <div class="nav-sub">
+      <a href="#gen-hf-core">Hugging Face &amp; Decoding</a>
+      <a href="#gen-prompt-tools">Structured Outputs &amp; Tools</a>
+      <a href="#gen-limitations">Context &amp; Hallucinations</a>
+      <a href="#gen-fine-tuning">LoRA, QLoRA &amp; PEFT</a>
+      <a href="#gen-quant-budget">Quantization &amp; VRAM</a>
+    </div>
+  </div>
+
+  <!-- Ch 9: Phase 4 RAG & Evaluation -->
+  <div class="nav-group">
+    <div class="nav-section" onclick="toggleNav(this); scrollTo('ch9')">
+      <span class="dot" style="background:#51cf66"></span> RAG &amp; Evaluation
+    </div>
+    <div class="nav-sub">
+      <a href="#rag-ingestion">Chunking &amp; Metadata</a>
+      <a href="#rag-databases">ChromaDB &amp; pgvector</a>
+      <a href="#rag-hybrid">BM25, Hybrid &amp; Reranking</a>
+      <a href="#rag-eval">Grounded Answers &amp; Metrics</a>
+      <a href="#rag-vs-fine">RAG vs Fine-Tuning</a>
+      <a href="#proj-ch9">Phase 4 Deliverable (Q&amp;A + Eval)</a>
+    </div>
+  </div>
+
+  <!-- Ch 10: Phase 5 Applied AI & Agents -->
+  <div class="nav-group">
+    <div class="nav-section" onclick="toggleNav(this); scrollTo('ch10')">
+      <span class="dot" style="background:#fcc419"></span> Applied AI &amp; Agents
+    </div>
+    <div class="nav-sub">
+      <a href="#app-fastapi">Async FastAPI &amp; Pydantic</a>
+      <a href="#app-langgraph">LangGraph &amp; Workflows</a>
+      <a href="#app-state">State &amp; Human-in-the-Loop</a>
+      <a href="#app-resilience">Retries, Errors &amp; Security</a>
+      <a href="#app-tracing">Tracing, Costs &amp; Eval</a>
+      <a href="#proj-ch10">Phase 5 Deliverable (Service + Tests)</a>
+    </div>
+  </div>
+
+  <!-- Ch 11 -->
+  <div class="nav-group">
+    <div class="nav-section" onclick="toggleNav(this); scrollTo('ch11')">
+      <span class="dot" style="background:#20c997"></span> Projects & Roadmap
+    </div>
+    <div class="nav-sub">
+      <a href="#proj-beginner">Beginner Projects</a>
+      <a href="#proj-inter">Intermediate Projects</a>
+      <a href="#proj-repo">Structuring Projects</a>
+      <a href="#proj-roadmap">Learning Roadmap</a>
+      <a href="#proj-resources">Resources</a>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div id="main">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge">ðŸ“š Complete Study Guide Â· 12 Chapters</div>
+    <h1>AI / ML<br>Complete Study Guide</h1>
+    <p>From absolute zero to building real AI applications. Beginner-friendly explanations, code examples, and hands-on projects covering Python, ML, Deep Learning, NLP, Generative AI, RAG, and Deployment.</p>
+    <div class="hero-grid">
+      <div class="hero-card" onclick="document.getElementById('ch0').scrollIntoView({behavior:'smooth'})">
+        <div class="hc-num">ðŸŒŸ</div>
+        <div class="hc-label">What is AI?</div>
+      </div>
+      <div class="hero-card" onclick="document.getElementById('ch1').scrollIntoView({behavior:'smooth'})">
+        <div class="hc-num">âš™ï¸</div>
+        <div class="hc-label">Setup</div>
+      </div>
+      <div class="hero-card" onclick="document.getElementById('ch2').scrollIntoView({behavior:'smooth'})">
+        <div class="hc-num">ðŸ</div>
+        <div class="hc-label">Python</div>
+      </div>
+      <div class="hero-card" onclick="document.getElementById('ch3').scrollIntoView({behavior:'smooth'})">
+        <div class="hc-num">ðŸ“Š</div>
+        <div class="hc-label">Libraries</div>
+      </div>
+      <div class="hero-card" onclick="document.getElementById('ch4').scrollIntoView({behavior:'smooth'})">
+        <div class="hc-num">ðŸ§¹</div>
+        <div class="hc-label">Preprocessing</div>
+      </div>
+      <div class="hero-card" onclick="document.getElementById('ch5').scrollIntoView({behavior:'smooth'})">
+        <div class="hc-num">ðŸ¤–</div>
+        <div class="hc-label">Machine Learning</div>
+      </div>
+      <div class="hero-card" onclick="document.getElementById('ch6').scrollIntoView({behavior:'smooth'})">
+        <div class="hc-num">ðŸ§ </div>
+        <div class="hc-label">Deep Learning</div>
+      </div>
+      <div class="hero-card" onclick="document.getElementById('ch7').scrollIntoView({behavior:'smooth'})">
+        <div class="hc-num">ðŸ’¬</div>
+        <div class="hc-label">NLP</div>
+      </div>
+      <div class="hero-card" onclick="document.getElementById('ch8').scrollIntoView({behavior:'smooth'})">
+        <div class="hc-num">âœ¨</div>
+        <div class="hc-label">Generative AI</div>
+      </div>
+      <div class="hero-card" onclick="document.getElementById('ch9').scrollIntoView({behavior:'smooth'})">
+        <div class="hc-num">ðŸ”—</div>
+        <div class="hc-label">RAG & Agents</div>
+      </div>
+      <div class="hero-card" onclick="document.getElementById('ch10').scrollIntoView({behavior:'smooth'})">
+        <div class="hc-num">ðŸš€</div>
+        <div class="hc-label">Deployment</div>
+      </div>
+      <div class="hero-card" onclick="document.getElementById('ch11').scrollIntoView({behavior:'smooth'})">
+        <div class="hc-num">ðŸŽ¯</div>
+        <div class="hc-label">Projects</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- CHAPTERS_PLACEHOLDER -->
+
+<!-- FOOTER -->
+  <div style="padding: 3rem 4rem; background: var(--surface); border-top: 1px solid var(--border); text-align: center;">
+    <p style="color: var(--muted); font-size: 13px;">AI/ML Complete Study Guide Â· T.Y. B.Tech Computer Engineering Â· PCCOE Â· 2024â€“25</p>
+    <p style="color: var(--border2); font-size: 12px; margin-top: 6px;">Intro â†’ Setup â†’ Python â†’ Libraries â†’ Preprocessing â†’ ML â†’ DL â†’ NLP â†’ GenAI â†’ RAG & Agents â†’ Deploy â†’ Projects</p>
+    <p style="color: var(--border); font-size: 11px; margin-top: 8px;">12 Chapters Â· Beginner to Advanced Â· 200+ Code Examples</p>
+  </div>
+
+</div>
+
+<button id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">â†‘</button>
+
+<script src="js/main.js"></script>
+</body>
+</html>

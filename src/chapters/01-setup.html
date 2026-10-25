@@ -1,0 +1,201 @@
+<!-- ============================== CHAPTER 1: SETUP ============================== -->
+  <div class="chapter ch1" id="ch1">
+    <div class="chapter-header">
+      <div class="chapter-num">01</div>
+      <div>
+        <h2>Setting Up Your Environment</h2>
+        <div class="chapter-sub">Install Python, Jupyter, VS Code, and essential libraries to start coding</div>
+      </div>
+    </div>
+
+    <div class="section" id="setup-python">
+      <h3>Installing Python</h3>
+      <p>Python is the #1 language for AI/ML. We need Python 3.10+ installed on your system.</p>
+
+      <div class="steps">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Download Python</h4>
+            <p>Go to <strong>python.org/downloads</strong> and download the latest Python 3.12+ installer for your OS.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Run the Installer</h4>
+            <p>âš ï¸ IMPORTANT: Check the box <strong>"Add Python to PATH"</strong> before clicking Install. This is the #1 beginner mistake to avoid!</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>Verify Installation</h4>
+            <p>Open a terminal (Command Prompt or PowerShell on Windows, Terminal on Mac/Linux) and type:</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>terminal</span>
+        </div>
+        <pre><span class="cm"># Check Python version</span>
+python --version
+<span class="cm"># Output: Python 3.12.x</span>
+
+<span class="cm"># Check pip (Python's package manager)</span>
+pip --version
+<span class="cm"># Output: pip 24.x.x</span></pre>
+      </div>
+
+      <div class="info-box tip">
+        <strong>ðŸ’¡ Alternative: Use Anaconda</strong>
+        Anaconda comes with Python + Jupyter + 200+ science libraries pre-installed. Great for beginners who want everything ready to go. Download from <strong>anaconda.com</strong>.
+      </div>
+    </div>
+
+    <div class="section" id="setup-venv">
+      <h3>Virtual Environments (Best Practice)</h3>
+      <p>A virtual environment is an isolated space for your project. This prevents library versions from clashing across different projects (e.g., Project A needs TensorFlow 2.10, Project B needs TensorFlow 2.15).</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>terminal</span>
+        </div>
+        <pre><span class="cm"># 1. Create a virtual environment named 'myenv'</span>
+python -m venv myenv
+
+<span class="cm"># 2. Activate it</span>
+<span class="cm"># On Windows:</span>
+myenv\Scripts\activate
+<span class="cm"># On Mac/Linux:</span>
+source myenv/bin/activate
+
+<span class="cm"># 3. Now install your libraries</span>
+pip install scikit-learn pandas
+
+<span class="cm"># 4. Deactivate when done</span>
+deactivate</pre>
+      </div>
+      <div class="info-box tip">
+        <strong>ðŸ’¡ Pro Tip</strong>
+        Never install everything globally. Always create a virtual environment for each new AI project. This is how professionals work.
+      </div>
+    </div>
+
+    <div class="section" id="setup-jupyter">
+      <h3>Jupyter Notebook â€” Your AI Lab</h3>
+      <p>Jupyter Notebook lets you write Python code in cells and see results instantly. It's the standard tool for data science and ML experimentation. Think of it as a "smart notebook" where you write code and see results side by side.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>terminal</span>
+        </div>
+        <pre><span class="cm"># Install Jupyter</span>
+pip install jupyter notebook
+
+<span class="cm"># Launch Jupyter (opens in browser)</span>
+jupyter notebook
+
+<span class="cm"># Or use JupyterLab (modern version)</span>
+pip install jupyterlab
+jupyter lab</pre>
+      </div>
+
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="cc-icon">ðŸ“</div>
+          <h4>Code Cells</h4>
+          <p>Write Python code and press Shift+Enter to run. Output appears right below. Perfect for experimenting with ML code step by step.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">ðŸ“„</div>
+          <h4>Markdown Cells</h4>
+          <p>Write formatted text, headings, and explanations between your code. Makes your notebook a shareable document.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">â˜ï¸</div>
+          <h4>Google Colab</h4>
+          <p>Free Jupyter in the cloud at colab.research.google.com. No installation needed! Free GPU access for training models.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="setup-libs">
+      <h3>Installing Key Libraries</h3>
+      <p>These are the essential Python libraries for AI/ML. Install them all at once:</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>terminal</span>
+        </div>
+        <pre><span class="cm"># Core data science libraries</span>
+pip install numpy pandas matplotlib seaborn
+
+<span class="cm"># Machine Learning</span>
+pip install scikit-learn
+
+<span class="cm"># Deep Learning (choose one to start)</span>
+pip install tensorflow    <span class="cm"># Google's framework (easier for beginners)</span>
+pip install torch         <span class="cm"># PyTorch (preferred in research)</span>
+
+<span class="cm"># Generative AI</span>
+pip install openai anthropic langchain
+
+<span class="cm"># Or install everything at once:</span>
+pip install numpy pandas matplotlib seaborn scikit-learn jupyter</pre>
+      </div>
+
+      <table>
+        <tr><th>Library</th><th>What it does</th><th>Used for</th></tr>
+        <tr><td><strong>NumPy</strong></td><td>Fast math on arrays & matrices</td><td>All of ML (everything uses NumPy internally)</td></tr>
+        <tr><td><strong>Pandas</strong></td><td>Data tables (like Excel in Python)</td><td>Loading CSVs, cleaning data, analysis</td></tr>
+        <tr><td><strong>Matplotlib</strong></td><td>Creating charts and plots</td><td>Visualizing data and model results</td></tr>
+        <tr><td><strong>Seaborn</strong></td><td>Pretty statistical plots</td><td>Heatmaps, distributions, correlations</td></tr>
+        <tr><td><strong>Scikit-learn</strong></td><td>ML algorithms in 3 lines of code</td><td>Training ML models, evaluation, pipelines</td></tr>
+        <tr><td><strong>TensorFlow/Keras</strong></td><td>Building neural networks</td><td>Deep learning, CNNs, RNNs, NLP models</td></tr>
+        <tr><td><strong>PyTorch</strong></td><td>Flexible neural networks</td><td>Research, advanced DL, custom architectures</td></tr>
+      </table>
+    </div>
+
+    <div class="section" id="setup-first">
+      <h3>Your First AI Program</h3>
+      <p>Let's write a tiny ML program to prove everything works. This program predicts exam scores based on hours studied.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>first_ai.py</span>
+        </div>
+        <pre><span class="cm"># Your first AI program! ðŸŽ‰</span>
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> <span class="cl">LinearRegression</span>
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># Data: hours studied â†’ exam score</span>
+hours = np.<span class="fn">array</span>([[<span class="nu">1</span>],[<span class="nu">2</span>],[<span class="nu">3</span>],[<span class="nu">4</span>],[<span class="nu">5</span>],[<span class="nu">6</span>],[<span class="nu">7</span>],[<span class="nu">8</span>]])
+scores = np.<span class="fn">array</span>([<span class="nu">40</span>, <span class="nu">50</span>, <span class="nu">55</span>, <span class="nu">65</span>, <span class="nu">70</span>, <span class="nu">75</span>, <span class="nu">85</span>, <span class="nu">90</span>])
+
+<span class="cm"># Train the model (it learns the pattern)</span>
+model = <span class="cl">LinearRegression</span>()
+model.<span class="fn">fit</span>(hours, scores)
+
+<span class="cm"># Predict: what score for 9 hours of study?</span>
+prediction = model.<span class="fn">predict</span>([[<span class="nu">9</span>]])
+<span class="fn">print</span>(<span class="st">f"Predicted score for 9 hours: {prediction[0]:.1f}"</span>)
+<span class="cm"># Output: Predicted score for 9 hours: 95.4</span>
+
+<span class="fn">print</span>(<span class="st">"âœ… Your AI setup works! You're ready to learn."</span>)</pre>
+      </div>
+
+      <div class="info-box info">
+        <strong>ðŸŽ‰ Congratulations!</strong>
+        You just built an AI model! In 6 lines of code, you trained a machine to predict exam scores. The rest of this guide teaches you how to do much more complex and powerful things with the same basic idea.
+      </div>
+    </div>
+  </div>
+

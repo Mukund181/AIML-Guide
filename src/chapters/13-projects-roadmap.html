@@ -1,0 +1,151 @@
+<!-- ============================== CHAPTER 11: PROJECTS ============================== -->
+  <div class="chapter ch11" id="ch11">
+    <div class="chapter-header">
+      <div class="chapter-num">11</div>
+      <div>
+        <h2>Projects &amp; Learning Roadmap</h2>
+        <div class="chapter-sub">Practice projects, suggested learning path, and resources to continue learning</div>
+      </div>
+    </div>
+
+    <div class="section" id="proj-beginner">
+      <h3>Beginner Projects</h3>
+      <p>Start with these â€” each teaches a specific ML concept. Use scikit-learn and Jupyter Notebooks.</p>
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="cc-icon">ðŸ </div>
+          <h4>House Price Predictor</h4>
+          <p><strong>Concept:</strong> Linear Regression<br><strong>Dataset:</strong> Boston/California Housing<br>Predict home prices from features like area, rooms, location.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">ðŸŒ¸</div>
+          <h4>Iris Flower Classifier</h4>
+          <p><strong>Concept:</strong> Classification<br><strong>Dataset:</strong> Iris (built into sklearn)<br>Classify flower species from measurements.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">ðŸ“§</div>
+          <h4>Spam Email Detector</h4>
+          <p><strong>Concept:</strong> NLP + Classification<br><strong>Dataset:</strong> SMS Spam Collection<br>Classify emails as spam or not using TF-IDF.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">ðŸª</div>
+          <h4>Customer Segmentation</h4>
+          <p><strong>Concept:</strong> K-Means Clustering<br><strong>Dataset:</strong> Mall Customers<br>Group customers by spending behavior.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="proj-inter">
+      <h3>Intermediate Projects</h3>
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="cc-icon">ðŸ”¢</div>
+          <h4>Handwritten Digit Recognition</h4>
+          <p><strong>Concept:</strong> CNN / Neural Networks<br><strong>Dataset:</strong> MNIST<br>Build a CNN to classify digits 0-9 with 98%+ accuracy.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">ðŸ˜Š</div>
+          <h4>Movie Review Sentiment</h4>
+          <p><strong>Concept:</strong> LSTM / Transformers<br><strong>Dataset:</strong> IMDB Reviews<br>Classify movie reviews as positive or negative.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">ðŸ“„</div>
+          <h4>PDF Q&A Chatbot (RAG)</h4>
+          <p><strong>Concept:</strong> RAG + LangChain<br>Upload a PDF, ask questions about it. Uses embeddings + vector DB + LLM.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">ðŸ¤–</div>
+          <h4>AI Agent with Tools</h4>
+          <p><strong>Concept:</strong> LangChain Agents<br>Build an agent that can search the web, do math, and answer complex questions.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="proj-repo">
+      <h3>Structuring an ML Repository</h3>
+      <p>A professional Machine Learning project is not just a bunch of messy Jupyter Notebooks. It should be structured like real software.</p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>folder_structure</span>
+        </div>
+        <pre>my_ml_project/
+â”œâ”€â”€ data/
+â”‚   â”œâ”€â”€ raw/           <span class="cm"># Immutable original data</span>
+â”‚   â””â”€â”€ processed/     <span class="cm"># Cleaned data ready for modeling</span>
+â”œâ”€â”€ notebooks/         <span class="cm"># Jupyter notebooks for exploration only</span>
+â”œâ”€â”€ src/               <span class="cm"># The actual Python package</span>
+â”‚   â”œâ”€â”€ data.py        <span class="cm"># Scripts to fetch/clean data</span>
+â”‚   â”œâ”€â”€ features.py    <span class="cm"># Scripts to build features</span>
+â”‚   â”œâ”€â”€ models.py      <span class="cm"># Scripts to train models</span>
+â”‚   â””â”€â”€ evaluate.py    <span class="cm"># Scripts to score models</span>
+â”œâ”€â”€ models/            <span class="cm"># Saved .pkl or .h5 files</span>
+â”œâ”€â”€ requirements.txt   <span class="cm"># Exact package versions</span>
+â””â”€â”€ README.md          <span class="cm"># Instructions to run the project</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="proj-roadmap">
+      <h3>Learning Roadmap</h3>
+      <p>Follow this path step by step. Don't skip ahead â€” each step builds on the previous one.</p>
+
+      <div class="steps">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Month 1-2: Python + Libraries</h4>
+            <p>Master Python basics, NumPy, Pandas, and Matplotlib. Complete at least 50 practice problems. This is your foundation.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Month 2-3: Machine Learning</h4>
+            <p>Learn scikit-learn. Understand regression, classification, clustering. Build 3-4 complete ML projects. Learn data preprocessing thoroughly.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>Month 3-4: Deep Learning</h4>
+            <p>Learn Keras/TensorFlow or PyTorch. Understand neural networks, CNNs for images, RNNs for text. Build image classifier and text classifier.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <h4>Month 4-5: NLP + Generative AI</h4>
+            <p>Learn text preprocessing, transformers, Hugging Face. Understand LLMs, prompt engineering, and AI APIs.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <h4>Month 5-6: RAG, Agents & Deployment</h4>
+            <p>Build RAG applications, create AI agents, deploy models with Flask/Streamlit. Build a portfolio of 5+ projects.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="proj-resources">
+      <h3>Resources &amp; Where to Learn More</h3>
+      <table>
+        <tr><th>Resource</th><th>Type</th><th>Best For</th></tr>
+        <tr><td><strong>Kaggle.com</strong></td><td>Datasets + Competitions</td><td>Practice on real datasets, learn from others' notebooks</td></tr>
+        <tr><td><strong>fast.ai</strong></td><td>Free Course</td><td>Practical deep learning â€” top-down approach, very beginner-friendly</td></tr>
+        <tr><td><strong>Andrew Ng's ML Course</strong></td><td>Coursera</td><td>Best theoretical foundation â€” understand the math behind ML</td></tr>
+        <tr><td><strong>Google Colab</strong></td><td>Free Notebooks</td><td>Run ML code in the cloud with free GPUs</td></tr>
+        <tr><td><strong>Hugging Face</strong></td><td>Models + Datasets</td><td>Pre-trained models for NLP, vision, audio â€” easy to use</td></tr>
+        <tr><td><strong>Papers With Code</strong></td><td>Research</td><td>Latest ML papers with code implementations</td></tr>
+        <tr><td><strong>YouTube: 3Blue1Brown</strong></td><td>Visual Math</td><td>Beautiful explanations of neural networks and math behind ML</td></tr>
+        <tr><td><strong>LangChain Docs</strong></td><td>Documentation</td><td>Building LLM applications, RAG, and agents</td></tr>
+      </table>
+
+      <div class="info-box tip">
+        <strong>ðŸ’¡ Final Advice</strong>
+        The best way to learn AI/ML is by <strong>building projects</strong>. Don't get stuck in "tutorial hell" â€” after understanding the basics, pick a project that excites you and build it end-to-end. You'll learn 10x more by struggling through a real project than by watching 100 tutorials. Start simple, iterate, and keep pushing your boundaries. You've got this! ðŸš€
+      </div>
+    </div>
+  </div>
+

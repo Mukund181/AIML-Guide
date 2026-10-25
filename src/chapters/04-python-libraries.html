@@ -1,0 +1,257 @@
+<!-- ============================== CHAPTER 3: PYTHON LIBRARIES ============================== -->
+  <div class="chapter ch3" id="ch3">
+    <div class="chapter-header">
+      <div class="chapter-num">03</div>
+      <div>
+        <h2>Python Libraries for Data Science</h2>
+        <div class="chapter-sub">NumPy, Pandas, Matplotlib & Seaborn â€” Your data toolkit</div>
+      </div>
+    </div>
+
+    <div class="section" id="lib-numpy">
+      <h3>NumPy â€” Fast Array Computing</h3>
+      <p>NumPy is the foundation of ML in Python. Every ML library (scikit-learn, TensorFlow, PyTorch) works with NumPy arrays under the hood. It's 50-100x faster than Python lists for math operations.</p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>numpy_basics.py</span>
+        </div>
+        <pre><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># Creating arrays</span>
+a = np.<span class="fn">array</span>([<span class="nu">1</span>, <span class="nu">2</span>, <span class="nu">3</span>, <span class="nu">4</span>, <span class="nu">5</span>])
+b = np.<span class="fn">zeros</span>((<span class="nu">3</span>, <span class="nu">3</span>))        <span class="cm"># 3Ã—3 matrix of zeros</span>
+c = np.<span class="fn">ones</span>((<span class="nu">2</span>, <span class="nu">4</span>))         <span class="cm"># 2Ã—4 matrix of ones</span>
+d = np.<span class="fn">random.rand</span>(<span class="nu">3</span>, <span class="nu">3</span>)   <span class="cm"># random 3Ã—3 matrix (0 to 1)</span>
+e = np.<span class="fn">arange</span>(<span class="nu">0</span>, <span class="nu">10</span>, <span class="nu">2</span>)     <span class="cm"># [0, 2, 4, 6, 8]</span>
+f = np.<span class="fn">linspace</span>(<span class="nu">0</span>, <span class="nu">1</span>, <span class="nu">5</span>)   <span class="cm"># [0, 0.25, 0.5, 0.75, 1.0]</span>
+
+<span class="cm"># Array shape and info</span>
+x = np.<span class="fn">array</span>([[<span class="nu">1</span>, <span class="nu">2</span>, <span class="nu">3</span>], [<span class="nu">4</span>, <span class="nu">5</span>, <span class="nu">6</span>]])
+<span class="fn">print</span>(x.shape)    <span class="cm"># (2, 3) â€” 2 rows, 3 columns</span>
+<span class="fn">print</span>(x.ndim)     <span class="cm"># 2 â€” number of dimensions</span>
+<span class="fn">print</span>(x.dtype)    <span class="cm"># int64</span>
+<span class="fn">print</span>(x.size)     <span class="cm"># 6 â€” total number of elements</span>
+
+<span class="cm"># Vectorized math â€” no loops needed!</span>
+a = np.<span class="fn">array</span>([<span class="nu">1</span>, <span class="nu">2</span>, <span class="nu">3</span>])
+b = np.<span class="fn">array</span>([<span class="nu">4</span>, <span class="nu">5</span>, <span class="nu">6</span>])
+<span class="fn">print</span>(a + b)      <span class="cm"># [5, 7, 9]</span>
+<span class="fn">print</span>(a * b)      <span class="cm"># [4, 10, 18] â€” element-wise</span>
+<span class="fn">print</span>(a @ b)      <span class="cm"># 32 â€” dot product (1*4 + 2*5 + 3*6)</span>
+
+<span class="cm"># Reshape â€” CRITICAL for ML (changing data dimensions)</span>
+flat = np.<span class="fn">arange</span>(<span class="nu">12</span>)       <span class="cm"># [0,1,2,...,11]</span>
+mat = flat.<span class="fn">reshape</span>(<span class="nu">3</span>, <span class="nu">4</span>)  <span class="cm"># 3Ã—4 matrix</span>
+<span class="fn">print</span>(mat[<span class="nu">1</span>, :])      <span class="cm"># row 1: [4, 5, 6, 7]</span>
+<span class="fn">print</span>(mat[:, <span class="nu">2</span>])      <span class="cm"># column 2: [2, 6, 10]</span>
+
+<span class="cm"># Statistical functions (used constantly in ML)</span>
+data = np.<span class="fn">array</span>([<span class="nu">4</span>, <span class="nu">7</span>, <span class="nu">13</span>, <span class="nu">2</span>, <span class="nu">9</span>])
+<span class="fn">print</span>(np.<span class="fn">mean</span>(data))   <span class="cm"># 7.0 â€” average</span>
+<span class="fn">print</span>(np.<span class="fn">std</span>(data))    <span class="cm"># standard deviation</span>
+<span class="fn">print</span>(np.<span class="fn">max</span>(data))    <span class="cm"># 13</span>
+<span class="fn">print</span>(np.<span class="fn">argmax</span>(data)) <span class="cm"># 2 (index of max value)</span>
+<span class="fn">print</span>(np.<span class="fn">sum</span>(data))    <span class="cm"># 35</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="lib-pandas">
+      <h3>Pandas â€” Data Tables &amp; Analysis</h3>
+      <p>Pandas gives you Excel-like tables in Python called DataFrames. You'll use it to load CSV files, clean data, and explore datasets before training any model.</p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>pandas_basics.py</span>
+        </div>
+        <pre><span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+<span class="cm"># Create DataFrame from dict</span>
+data = {
+    <span class="st">"name"</span>: [<span class="st">"Alice"</span>, <span class="st">"Bob"</span>, <span class="st">"Charlie"</span>, <span class="st">"Diana"</span>],
+    <span class="st">"age"</span>:  [<span class="nu">25</span>, <span class="nu">30</span>, <span class="nu">35</span>, <span class="nu">28</span>],
+    <span class="st">"score"</span>: [<span class="nu">88</span>, <span class="nu">92</span>, <span class="nu">79</span>, <span class="nu">95</span>]
+}
+df = pd.<span class="cl">DataFrame</span>(data)
+
+<span class="cm"># Reading a CSV file (most common real-world use)</span>
+<span class="cm"># df = pd.read_csv("dataset.csv")</span>
+
+<span class="cm"># Exploring the data â€” ALWAYS do this first!</span>
+df.<span class="fn">head</span>()           <span class="cm"># first 5 rows</span>
+df.<span class="fn">tail</span>(<span class="nu">3</span>)          <span class="cm"># last 3 rows</span>
+df.shape            <span class="cm"># (rows, columns) â†’ (4, 3)</span>
+df.<span class="fn">info</span>()           <span class="cm"># column types + null counts</span>
+df.<span class="fn">describe</span>()       <span class="cm"># statistics: mean, std, min, max</span>
+
+<span class="cm"># Selecting data</span>
+df[<span class="st">"age"</span>]              <span class="cm"># single column â†’ Series</span>
+df[[<span class="st">"name"</span>, <span class="st">"score"</span>]]  <span class="cm"># multiple columns</span>
+df.<span class="fn">iloc</span>[<span class="nu">0</span>]              <span class="cm"># first row by index</span>
+df.<span class="fn">loc</span>[df[<span class="st">"age"</span>] > <span class="nu">28</span>]  <span class="cm"># filter: rows where age > 28</span>
+
+<span class="cm"># Handling missing values â€” VERY important in ML</span>
+df.<span class="fn">isnull</span>().<span class="fn">sum</span>()      <span class="cm"># count NaN per column</span>
+df.<span class="fn">dropna</span>()             <span class="cm"># remove rows with any NaN</span>
+df.<span class="fn">fillna</span>(<span class="nu">0</span>)            <span class="cm"># replace NaN with 0</span>
+df[<span class="st">"age"</span>].<span class="fn">fillna</span>(df[<span class="st">"age"</span>].<span class="fn">mean</span>())  <span class="cm"># fill with column mean</span>
+
+<span class="cm"># Sorting</span>
+df.<span class="fn">sort_values</span>(<span class="st">"score"</span>, ascending=<span class="kw">False</span>)  <span class="cm"># highest score first</span>
+
+<span class="cm"># Adding a new column</span>
+df[<span class="st">"grade"</span>] = df[<span class="st">"score"</span>].<span class="fn">apply</span>(<span class="kw">lambda</span> s: <span class="st">"A"</span> <span class="kw">if</span> s >= <span class="nu">90</span> <span class="kw">else</span> <span class="st">"B"</span>)
+
+<span class="cm"># GroupBy â€” aggregate by category</span>
+<span class="cm"># df.groupby("department")["salary"].mean()</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="lib-pandas-adv">
+      <h3>Advanced Pandas (Joins & Pivot Tables)</h3>
+      <p>Real-world data rarely comes in one perfect table. You need to merge datasets and reshape them to extract insights.</p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>pandas_advanced.py</span>
+        </div>
+        <pre><span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+<span class="cm"># --- Merging DataFrames (SQL-like JOIN) ---</span>
+users = pd.<span class="cl">DataFrame</span>({<span class="st">"id"</span>: [<span class="nu">1</span>, <span class="nu">2</span>, <span class="nu">3</span>], <span class="st">"name"</span>: [<span class="st">"Alice"</span>, <span class="st">"Bob"</span>, <span class="st">"Charlie"</span>]})
+purchases = pd.<span class="cl">DataFrame</span>({<span class="st">"user_id"</span>: [<span class="nu">1</span>, <span class="nu">2</span>, <span class="nu">2</span>], <span class="st">"amount"</span>: [<span class="nu">50</span>, <span class="nu">100</span>, <span class="nu">200</span>]})
+
+<span class="cm"># Merge based on matching IDs (Inner join by default)</span>
+merged_df = pd.<span class="fn">merge</span>(users, purchases, left_on=<span class="st">"id"</span>, right_on=<span class="st">"user_id"</span>)
+<span class="fn">print</span>(merged_df)
+
+<span class="cm"># --- Pivot Tables ---</span>
+<span class="cm"># Great for summarizing data (like Excel Pivot Tables)</span>
+data = pd.<span class="cl">DataFrame</span>({
+    <span class="st">"department"</span>: [<span class="st">"Sales"</span>, <span class="st">"Sales"</span>, <span class="st">"IT"</span>, <span class="st">"IT"</span>],
+    <span class="st">"year"</span>: [<span class="nu">2023</span>, <span class="nu">2024</span>, <span class="nu">2023</span>, <span class="nu">2024</span>],
+    <span class="st">"budget"</span>: [<span class="nu">500</span>, <span class="nu">600</span>, <span class="nu">800</span>, <span class="nu">900</span>]
+})
+pivot = pd.<span class="fn">pivot_table</span>(data, values=<span class="st">"budget"</span>, index=<span class="st">"department"</span>, columns=<span class="st">"year"</span>)
+<span class="fn">print</span>(pivot)</pre>
+      </div>
+    </div>
+
+    <div class="section" id="lib-matplotlib">
+      <h3>Matplotlib &amp; Seaborn â€” Visualizing Data</h3>
+      <p>You should always visualize your data before and after training a model. Matplotlib is the standard plotting library. Seaborn makes prettier statistical plots.</p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>visualization.py</span>
+        </div>
+        <pre><span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> seaborn <span class="kw">as</span> sns
+
+<span class="cm"># Line plot â€” great for training loss over epochs</span>
+epochs = <span class="fn">range</span>(<span class="nu">1</span>, <span class="nu">11</span>)
+loss = [<span class="nu">0.9</span>, <span class="nu">0.7</span>, <span class="nu">0.5</span>, <span class="nu">0.35</span>, <span class="nu">0.25</span>, <span class="nu">0.18</span>, <span class="nu">0.12</span>, <span class="nu">0.09</span>, <span class="nu">0.07</span>, <span class="nu">0.05</span>]
+plt.<span class="fn">plot</span>(epochs, loss, marker=<span class="st">'o'</span>, color=<span class="st">'#7c6ff7'</span>)
+plt.<span class="fn">xlabel</span>(<span class="st">'Epoch'</span>)
+plt.<span class="fn">ylabel</span>(<span class="st">'Loss'</span>)
+plt.<span class="fn">title</span>(<span class="st">'Training Loss Over Time'</span>)
+plt.<span class="fn">grid</span>(<span class="kw">True</span>, alpha=<span class="nu">0.3</span>)
+plt.<span class="fn">show</span>()
+
+<span class="cm"># Scatter plot â€” visualize feature relationships</span>
+<span class="cm"># plt.scatter(df['hours_studied'], df['exam_score'], alpha=0.6)</span>
+
+<span class="cm"># Histogram â€” see data distribution</span>
+data = np.random.<span class="fn">normal</span>(<span class="nu">0</span>, <span class="nu">1</span>, <span class="nu">1000</span>)  <span class="cm"># 1000 random values</span>
+plt.<span class="fn">hist</span>(data, bins=<span class="nu">30</span>, color=<span class="st">'#4ecdc4'</span>, edgecolor=<span class="st">'black'</span>)
+plt.<span class="fn">title</span>(<span class="st">'Normal Distribution'</span>)
+plt.<span class="fn">show</span>()
+
+<span class="cm"># Bar chart â€” compare categories</span>
+models = [<span class="st">'Linear'</span>, <span class="st">'Tree'</span>, <span class="st">'SVM'</span>, <span class="st">'RF'</span>]
+accuracies = [<span class="nu">0.82</span>, <span class="nu">0.88</span>, <span class="nu">0.90</span>, <span class="nu">0.93</span>]
+plt.<span class="fn">bar</span>(models, accuracies, color=[<span class="st">'#ffa94d'</span>,<span class="st">'#4ecdc4'</span>,<span class="st">'#7c6ff7'</span>,<span class="st">'#51cf66'</span>])
+plt.<span class="fn">ylabel</span>(<span class="st">'Accuracy'</span>)
+plt.<span class="fn">title</span>(<span class="st">'Model Comparison'</span>)
+plt.<span class="fn">show</span>()
+
+<span class="cm"># Seaborn heatmap â€” correlation matrix (essential for feature selection)</span>
+<span class="cm"># sns.heatmap(df.corr(), annot=True, cmap='coolwarm')</span>
+
+<span class="cm"># Seaborn pairplot â€” scatter plots for all feature pairs</span>
+<span class="cm"># sns.pairplot(df, hue='species')</span></pre>
+      </div>
+      <div class="info-box note">
+        <strong>ðŸ“– Note</strong>
+        In Jupyter Notebooks, add <code>%matplotlib inline</code> at the top so plots render inside the notebook instead of opening a new window. In Google Colab, plots render automatically.
+      </div>
+    </div>
+
+    <div class="section" id="proj-ch3">
+      <h3>Practical Project: Data Analytics Dashboard</h3>
+      <p>Let's build a mini-script that reads student data, analyzes it, and visualizes the results. This combines NumPy, Pandas, and Matplotlib.</p>
+      
+      <div class="steps">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Generate Data</h4>
+            <p>We'll use NumPy to generate a synthetic dataset of 100 students.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Analyze with Pandas</h4>
+            <p>Calculate class averages, pass rates, and find the top performers.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>Visualize</h4>
+            <p>Create a histogram of scores to see the distribution.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>project_analytics.py</span>
+        </div>
+        <pre><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+
+<span class="cm"># 1. Generate Data</span>
+np.random.<span class="fn">seed</span>(<span class="nu">42</span>)
+data = {
+    <span class="st">"Student_ID"</span>: <span class="fn">range</span>(<span class="nu">1</span>, <span class="nu">101</span>),
+    <span class="st">"Study_Hours"</span>: np.random.<span class="fn">normal</span>(<span class="nu">5</span>, <span class="nu">2</span>, <span class="nu">100</span>).<span class="fn">clip</span>(<span class="nu">0</span>, <span class="nu">10</span>),
+    <span class="st">"Exam_Score"</span>: np.random.<span class="fn">normal</span>(<span class="nu">65</span>, <span class="nu">15</span>, <span class="nu">100</span>).<span class="fn">clip</span>(<span class="nu">0</span>, <span class="nu">100</span>)
+}
+df = pd.<span class="cl">DataFrame</span>(data)
+
+<span class="cm"># 2. Analyze</span>
+df[<span class="st">"Passed"</span>] = df[<span class="st">"Exam_Score"</span>] >= <span class="nu">50</span>
+<span class="fn">print</span>(<span class="st">"--- Class Report ---"</span>)
+<span class="fn">print</span>(<span class="st">f"Average Score: {df['Exam_Score'].mean():.1f}"</span>)
+<span class="fn">print</span>(<span class="st">f"Pass Rate: {df['Passed'].mean() * 100:.1f}%"</span>)
+<span class="fn">print</span>(<span class="st">"\nTop 3 Students:"</span>)
+<span class="fn">print</span>(df.<span class="fn">nlargest</span>(<span class="nu">3</span>, <span class="st">"Exam_Score"</span>))
+
+<span class="cm"># 3. Visualize</span>
+plt.<span class="fn">figure</span>(figsize=(<span class="nu">8</span>, <span class="nu">5</span>))
+plt.<span class="fn">hist</span>(df[<span class="st">"Exam_Score"</span>], bins=<span class="nu">15</span>, color=<span class="st">'#7c6ff7'</span>, edgecolor=<span class="st">'black'</span>)
+plt.<span class="fn">axvline</span>(df[<span class="st">"Exam_Score"</span>].<span class="fn">mean</span>(), color=<span class="st">'red'</span>, linestyle=<span class="st">'dashed'</span>, linewidth=<span class="nu">2</span>, label=<span class="st">"Mean"</span>)
+plt.<span class="fn">title</span>(<span class="st">"Exam Score Distribution"</span>)
+plt.<span class="fn">xlabel</span>(<span class="st">"Score"</span>)
+plt.<span class="fn">ylabel</span>(<span class="st">"Number of Students"</span>)
+plt.<span class="fn">legend</span>()
+plt.<span class="fn">show</span>()</pre>
+      </div>
+    </div>
+  </div>
+

@@ -1,0 +1,374 @@
+<!-- ============================== CHAPTER 7: NLP ============================== -->
+  <div class="chapter ch7" id="ch7">
+    <div class="chapter-header">
+      <div class="chapter-num">07</div>
+      <div>
+        <h2>Natural Language Processing (NLP) &amp; Transformers</h2>
+        <div class="chapter-sub">Phase 4 (Weeks 10–13) · Text Preprocessing, Subword Tokenization, Embeddings &amp; Model Families</div>
+        <div style="margin-top: 8px;">
+          <span class="tag dl">Weeks 10–13</span>
+          <span class="tag ml">NLP Foundations</span>
+          <span class="tag new">Hiring Priority</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALLOUT: PHASE 4 OVERVIEW -->
+    <div class="info-box note">
+      <strong>Phase 4 Engineering Focus</strong>
+      Modern NLP has shifted from manual feature engineering and classical recurrent networks (RNNs/LSTMs) to <strong>Transformer-based foundation models</strong>. To excel in technical interviews and production AI systems, you must understand the complete journey: from character and subword tokenization (BPE) to embedding spaces, self-attention mechanisms, and the architectural differences between <strong>BERT</strong> (encoder-only) and <strong>GPT</strong> (decoder-only).
+    </div>
+
+    <!-- ==================== SECTION 1: PREPROCESSING & SUBWORD TOKENIZATION ==================== -->
+    <div class="section" id="nlp-basics">
+      <h3>Text Preprocessing &amp; Subword Tokenization</h3>
+      <p>Computers cannot process raw strings directly. Text must be normalized, segmented, and mapped to discrete numerical identifiers before being transformed into dense vector representations.</p>
+
+      <h4>1. Traditional Text Preprocessing Pipeline</h4>
+      <div class="pipeline">
+        <div class="pipe-step"><div class="pipe-box" style="border-color:#5c7cfa;color:#5c7cfa">Raw String</div></div>
+        <div class="pipe-arrow"></div>
+        <div class="pipe-step"><div class="pipe-box">Lowercasing &amp; Regex Cleaning</div></div>
+        <div class="pipe-arrow"></div>
+        <div class="pipe-step"><div class="pipe-box">Stopword Removal</div></div>
+        <div class="pipe-arrow"></div>
+        <div class="pipe-step"><div class="pipe-box">Lemmatization</div></div>
+        <div class="pipe-arrow"></div>
+        <div class="pipe-step"><div class="pipe-box" style="border-color:#51cf66;color:#51cf66">Clean Tokens</div></div>
+      </div>
+
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="cc-icon">✂️</div>
+          <h4>Stemming (Crude Truncation)</h4>
+          <p>Heuristic rule-based chopping of word suffixes (e.g. Porter Stemmer). Fast but creates non-words: <em>"studies"</em> \(\to\) <em>"studi"</em>, <em>"meeting"</em> \(\to\) <em>"meet"</em>.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">📖</div>
+          <h4>Lemmatization (Vocabulary Root)</h4>
+          <p>Uses morphological analysis and a dictionary (WordNet) to return the actual dictionary root (lemma): <em>"better"</em> \(\to\) <em>"good"</em>, <em>"was"</em> \(\to\) <em>"be"</em>.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">🚫</div>
+          <h4>Stopword Removal</h4>
+          <p>Filtering out high-frequency functional words (<em>"the", "is", "at"</em>) that carry little domain topicality in classical bag-of-words pipelines.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">⚠️</div>
+          <h4>When NOT to Clean</h4>
+          <p>In modern LLMs and Transformers, <strong>do not strip punctuation, casing, or stopwords</strong>! Grammatical markers and capitalization contain vital syntactic clues.</p>
+        </div>
+      </div>
+
+      <h4>2. The Subword Tokenization Revolution</h4>
+      <p>Early NLP faced a dilemma: <strong>Word-level tokenization</strong> resulted in massive vocabularies (millions of words) and failed on out-of-vocabulary (OOV) typos; <strong>Character-level tokenization</strong> eliminated OOV words but created excessively long sequences with diluted semantic meaning. Modern LLMs solve this via <strong>Subword Tokenization</strong> algorithms.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Algorithm</th>
+              <th>How It Works</th>
+              <th>Vocabulary Construction</th>
+              <th>Models Using It</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Byte-Pair Encoding (BPE)</strong></td>
+              <td>Starts with individual characters. Iteratively counts the most frequent adjacent character pairs and merges them into new subword units.</td>
+              <td>Bottom-up greedy frequency merging until desired vocabulary size is reached.</td>
+              <td><strong>GPT-2, GPT-3, GPT-4, RoBERTa, LLaMA</strong></td>
+            </tr>
+            <tr>
+              <td><strong>WordPiece</strong></td>
+              <td>Similar to BPE, but selects pair merges that maximize the likelihood of the training corpus under a unigram language model rather than pure frequency.</td>
+              <td>Likelihood maximization scoring: \(\frac{\text{count}(ab)}{\text{count}(a)\times\text{count}(b)}\).</td>
+              <td><strong>BERT, DistilBERT, Electra</strong></td>
+            </tr>
+            <tr>
+              <td><strong>SentencePiece / Unigram</strong></td>
+              <td>Treats raw input as a stream of bytes (including whitespace as a special character <code>_</code>). Language-independent; no language-specific pre-tokenizers needed.</td>
+              <td>Starts with a huge vocabulary and iteratively prunes low-probability subwords (top-down).</td>
+              <td><strong>T5, ALBERT, LLaMA 2/3, Mistral</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>tokenization_comparison.py</span>
+        </div>
+        <pre><span class="kw">from</span> transformers <span class="kw">import</span> AutoTokenizer
+
+<span class="cm"># 1. Load tokenizers from two modern model families</span>
+bert_tok  = AutoTokenizer.<span class="fn">from_pretrained</span>(<span class="st">"bert-base-uncased"</span>)     <span class="cm"># WordPiece</span>
+gpt2_tok  = AutoTokenizer.<span class="fn">from_pretrained</span>(<span class="st">"gpt2"</span>)                  <span class="cm"># Byte-level BPE</span>
+
+sample_text = <span class="st">"Antigravity is extraordinarily exhilarating!"</span>
+
+<span class="cm"># Tokenize with BERT (WordPiece prefixes continuations with '##')</span>
+bert_tokens = bert_tok.<span class="fn">tokenize</span>(sample_text)
+bert_ids    = bert_tok.<span class="fn">encode</span>(sample_text)
+<span class="fn">print</span>(<span class="st">"BERT WordPiece tokens:"</span>, bert_tokens)
+<span class="cm"># ['anti', '##gra', '##vity', 'is', 'extraordinarily', 'ex', '##hilar', '##ating', '!']</span>
+
+<span class="cm"># Tokenize with GPT-2 (Byte-level BPE prefixes spaces with special character)</span>
+gpt_tokens = gpt2_tok.<span class="fn">tokenize</span>(sample_text)
+<span class="fn">print</span>(<span class="st">"GPT-2 BPE tokens:     "</span>, gpt_tokens)
+<span class="cm"># ['Ant', 'ig', 'ravity', 'Ġis', 'Ġextraordinarily', 'Ġex', 'hil', 'ar', 'ating', '!']</span></pre>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 2: BOW, N-GRAMS & TF-IDF ==================== -->
+    <div class="section" id="nlp-bow">
+      <h3>Bag of Words, N-grams &amp; TF-IDF</h3>
+      <p>Before deep neural networks, statistical frequency models served as the standard numerical representation for document search and classification.</p>
+
+      <h4>1. The Mathematics of TF-IDF</h4>
+      <p><strong>TF-IDF</strong> (Term Frequency – Inverse Document Frequency) balances how frequently a word appears inside a document against how common that word is across the entire corpus. A word that appears frequently in <em>document A</em> but rarely in <em>any other document</em> receives a high score.</p>
+
+      <div class="formula">\text{TF}(t, d) = \frac{\text{count}(t \in d)}{\sum_{t' \in d} \text{count}(t')}, \qquad \text{IDF}(t, D) = \log\left(\frac{1 + |D|}{1 + |\{d \in D : t \in d\}|}\right) + 1</div>
+      <div class="formula">\text{TF-IDF}(t, d, D) = \text{TF}(t, d) \times \text{IDF}(t, D)</div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>tfidf_and_cosine.py</span>
+        </div>
+        <pre><span class="kw">from</span> sklearn.feature_extraction.text <span class="kw">import</span> TfidfVectorizer
+<span class="kw">from</span> sklearn.metrics.pairwise <span class="kw">import</span> cosine_similarity
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+corpus = [
+    <span class="st">"Deep learning models require GPUs for accelerated matrix multiplication."</span>,
+    <span class="st">"PyTorch provides dynamic computation graphs and automatic differentiation."</span>,
+    <span class="st">"Linear algebra and matrix multiplication are fundamental for machine learning."</span>
+]
+
+<span class="cm"># Vectorize using unigrams and bigrams (ngram_range=(1,2))</span>
+vectorizer = <span class="cl">TfidfVectorizer</span>(ngram_range=(<span class="nu">1</span>, <span class="nu">2</span>), stop_words=<span class="st">'english'</span>)
+tfidf_matrix = vectorizer.<span class="fn">fit_transform</span>(corpus)
+
+<span class="cm"># Compute pairwise cosine similarity between all documents</span>
+sim_matrix = <span class="fn">cosine_similarity</span>(tfidf_matrix, tfidf_matrix)
+
+df_sim = pd.<span class="cl">DataFrame</span>(sim_matrix, columns=[<span class="st">"Doc 1"</span>, <span class="st">"Doc 2"</span>, <span class="st">"Doc 3"</span>], 
+                              index=[<span class="st">"Doc 1"</span>, <span class="st">"Doc 2"</span>, <span class="st">"Doc 3"</span>])
+<span class="fn">print</span>(<span class="st">"TF-IDF Cosine Similarity Matrix:\n"</span>, df_sim.<span class="fn">round</span>(<span class="nu">3</span>))</pre>
+      </div>
+
+      <div class="info-box warn">
+        <strong>The Limitations of TF-IDF:</strong>
+        <ol style="margin-left: 1.2rem; margin-top: 4px;">
+          <li><strong>No Semantic Understanding:</strong> <em>"automobile"</em> and <em>"car"</em> share zero vocabulary overlap; their TF-IDF vector dot product is exactly 0.0.</li>
+          <li><strong>Extreme Sparsity:</strong> Vector length equals total vocabulary size (\(V \approx 50,000+\)), where 99.9% of entries are zeros.</li>
+          <li><strong>Disregards Word Order:</strong> <em>"Not bad, actually good"</em> and <em>"Not good, actually bad"</em> have identical Bag-of-Words vectors!</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 3: WORD EMBEDDINGS & SEMANTIC SIMILARITY ==================== -->
+    <div class="section" id="nlp-embed">
+      <h3>Word Embeddings &amp; Semantic Similarity</h3>
+      <p>The foundational breakthrough of modern NLP was mapping words to dense continuous vector spaces (\(\mathbb{R}^{300}\)) where geometric distance corresponds directly to semantic similarity: <em>"You shall know a word by the company it keeps"</em> (J.R. Firth, 1957).</p>
+
+      <h4>1. Word2Vec Architectures: CBOW vs Skip-Gram</h4>
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="cc-icon">🎯</div>
+          <h4>Continuous Bag of Words (CBOW)</h4>
+          <p>Predicts a central target word \(w_t\) given a window of surrounding context words: \(P(w_t \mid w_{t-2}, w_{t-1}, w_{t+1}, w_{t+2})\). Faster to train, higher accuracy on frequent words.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">⚡</div>
+          <h4>Skip-Gram Architecture</h4>
+          <p>Inverts the task: takes a single target word \(w_t\) and predicts the distribution of context words: \(P(w_{t+j} \mid w_t)\). Performs exceptionally well on rare words and smaller datasets.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">📉</div>
+          <h4>Negative Sampling (SGNS)</h4>
+          <p>Standard softmax requires calculating denominator sums over all \(V=100,000\) vocabulary words. Negative sampling turns multi-class classification into binary logistic regression using 5–20 random noise words.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">👑</div>
+          <h4>Vector Arithmetic &amp; Analogies</h4>
+          <p>Linear vector offsets capture relational semantics: \(\mathbf{v}_{\text{King}} - \mathbf{v}_{\text{Man}} + \mathbf{v}_{\text{Woman}} \approx \mathbf{v}_{\text{Queen}}\), or \(\mathbf{v}_{\text{Paris}} - \mathbf{v}_{\text{France}} + \mathbf{v}_{\text{Germany}} \approx \mathbf{v}_{\text{Berlin}}\).</p>
+        </div>
+      </div>
+
+      <h4>2. Sentence Embeddings with Sentence-Transformers</h4>
+      <p>While Word2Vec represents individual words, modern semantic search requires encoding whole sentences or paragraphs into fixed-length dense representations using fine-tuned bi-encoders (Reimers &amp; Gurevych, 2019).</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>semantic_similarity.py</span>
+        </div>
+        <pre><span class="cm"># pip install sentence-transformers</span>
+<span class="kw">from</span> sentence_transformers <span class="kw">import</span> SentenceTransformer, util
+
+<span class="cm"># 1. Load an industry-standard lightweight embedding model</span>
+model = <span class="cl">SentenceTransformer</span>(<span class="st">'all-MiniLM-L6-v2'</span>)
+
+queries = [<span class="st">"How do I optimize neural network training speed?"</span>]
+candidate_docs = [
+    <span class="st">"Using mixed precision fp16 and larger batch sizes accelerates GPU throughput."</span>,
+    <span class="st">"The French revolution took place in the late eighteenth century."</span>,
+    <span class="st">"PyTorch DataLoader num_workers allows asynchronous parallel batch loading."</span>,
+    <span class="st">"Baking sourdough bread requires flour, water, salt, and wild yeast."</span>
+]
+
+<span class="cm"># 2. Encode sentences into dense 384-dimensional vectors</span>
+query_vec = model.<span class="fn">encode</span>(queries, convert_to_tensor=<span class="kw">True</span>)
+doc_vecs  = model.<span class="fn">encode</span>(candidate_docs, convert_to_tensor=<span class="kw">True</span>)
+
+<span class="cm"># 3. Calculate cosine similarity scores</span>
+cosine_scores = util.<span class="fn">cos_sim</span>(query_vec, doc_vecs)[<span class="nu">0</span>]
+
+<span class="cm"># 4. Display ranked results</span>
+ranked_indices = cosine_scores.<span class="fn">argsort</span>(descending=<span class="kw">True</span>)
+<span class="fn">print</span>(<span class="st">"Query:"</span>, queries[<span class="nu">0</span>])
+<span class="kw">for</span> rank, idx <span class="kw">in</span> <span class="fn">enumerate</span>(ranked_indices):
+    score = cosine_scores[idx].<span class="fn">item</span>()
+    <span class="fn">print</span>(<span class="st">f"  Rank {rank+1} (Score: {score:.4f}): {candidate_docs[idx]}"</span>)</pre>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 4: ATTENTION & POSITIONAL ENCODINGS ==================== -->
+    <div class="section" id="nlp-attention">
+      <h3>Attention, Self-Attention &amp; Positional Encodings</h3>
+      <p>Before Transformers, Recurrent Neural Networks (LSTMs/GRUs) processed tokens sequentially from left to right, creating two fatal bottlenecks: (1) information loss over long distances, and (2) inability to train in parallel on GPUs. The <strong>Self-Attention mechanism</strong> solves both.</p>
+
+      <h4>1. Attention Taxonomy in NLP</h4>
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="cc-icon">🔄</div>
+          <h4>Bidirectional Self-Attention</h4>
+          <p>Every token can attend to every other token in the sequence (both left and right). Used in <strong>Encoder-only</strong> models (BERT) for understanding and classification.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">🛡️</div>
+          <h4>Causal / Masked Attention</h4>
+          <p>Tokens can ONLY attend to previous tokens (\(j \le i\)). An upper-triangular mask of \(-\infty\) is applied before softmax. Used in <strong>Decoder-only</strong> models (GPT) for autoregressive generation.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">🔀</div>
+          <h4>Cross-Attention</h4>
+          <p>Queries come from the decoder, while Keys and Values come from the encoder. Used in <strong>Encoder-Decoder</strong> models (T5, Whisper) for translation and transcription.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">🧩</div>
+          <h4>Multi-Query &amp; Grouped-Query</h4>
+          <p><strong>GQA (Grouped-Query Attention)</strong> shares Key-Value heads across Query heads, reducing KV cache VRAM by 8x during LLM generation (used in LLaMA-2/3 &amp; Mistral).</p>
+        </div>
+      </div>
+
+      <h4>2. Positional Encodings: Sinusoidal vs Rotary (RoPE)</h4>
+      <p>Because self-attention operations are <strong>permutation invariant</strong> (computing identical results regardless of word order), token positions must be explicitly added to the embeddings:</p>
+
+      <ul>
+        <li><strong>Sinusoidal Absolute Positional Encoding (Vaswani 2017):</strong> Adds static geometric sine/cosine waves of varying frequencies. Does not generalize well to context lengths beyond training window.</li>
+        <li><strong>Rotary Position Embeddings (RoPE - Su et al., 2021):</strong> Encodes relative position by rotating Query and Key vectors in the 2D complex plane:
+        <br>
+        \(\mathbf{q}_m = \mathbf{R}_{\Theta, m}^d \mathbf{W}_q \mathbf{x}_m, \quad \mathbf{k}_n = \mathbf{R}_{\Theta, n}^d \mathbf{W}_k \mathbf{x}_n \quad \implies \quad \langle \mathbf{q}_m, \mathbf{k}_n \rangle = g(\mathbf{x}_m, \mathbf{x}_n, m - n)\)
+        <br>
+        The inner product depends solely on the <strong>relative distance \(m - n\)</strong>. <strong>RoPE is the undisputed standard in modern LLMs</strong> (LLaMA 3, Mistral, Gemma, Qwen) because it allows seamless context length extrapolation via RoPE scaling!</li>
+      </ul>
+    </div>
+
+    <!-- ==================== SECTION 5: TRANSFORMER MODEL FAMILIES ==================== -->
+    <div class="section" id="nlp-transformers">
+      <h3>Encoder-Only, Decoder-Only &amp; Encoder–Decoder Transformers</h3>
+      <p>All modern language models originate from the 2017 Transformer architecture, but differ fundamentally in whether they utilize the Encoder, the Decoder, or both.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Architecture Family</th>
+              <th>Attention Mechanism</th>
+              <th>Pre-training Objective</th>
+              <th>Flagship Models</th>
+              <th>Best Use Cases</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Encoder-Only</strong><br>(Autoencoding)</td>
+              <td>Bidirectional (attends to full sequence simultaneously)</td>
+              <td><strong>Masked Language Modeling (MLM):</strong> Predict randomly masked tokens (15% <code>[MASK]</code>) + Next Sentence Prediction.</td>
+              <td>BERT, RoBERTa, DeBERTa, DistilBERT</td>
+              <td>Text classification, Named Entity Recognition (NER), extractive QA, dense vector embeddings.</td>
+            </tr>
+            <tr>
+              <td><strong>Decoder-Only</strong><br>(Autoregressive)</td>
+              <td>Causal Masked (attends only to preceding tokens)</td>
+              <td><strong>Causal Language Modeling (CLM):</strong> Predict the next token given all historical tokens: \(\max \sum \log P(w_t \mid w_{<t})\).</td>
+              <td>GPT-3/4, LLaMA 1/2/3, Mistral, Claude, Gemma, DeepSeek</td>
+              <td>Open-ended text generation, conversational chat, instruction following, code synthesis, reasoning.</td>
+            </tr>
+            <tr>
+              <td><strong>Encoder–Decoder</strong><br>(Sequence-to-Sequence)</td>
+              <td>Bidirectional Encoder + Causal Decoder with Cross-Attention</td>
+              <td>Span corruption (denoising corrupted text spans) or translation target prediction.</td>
+              <td>T5, BART, FLAN-T5, Whisper</td>
+              <td>Language translation, abstractive text summarization, speech-to-text.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 6: FINE-TUNING BERT ==================== -->
+    <div class="section" id="nlp-sentiment">
+      <h3>Fine-Tuning BERT for Text Classification</h3>
+      <p>In industry, encoder-only models like BERT remain the most cost-effective solution for classification tasks — running in sub-10ms with 100x lower inference cost than calling an LLM API.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>fine_tune_bert.py</span>
+        </div>
+        <pre><span class="kw">import</span> torch
+<span class="kw">from</span> transformers <span class="kw">import</span> AutoTokenizer, AutoModelForSequenceClassification
+<span class="kw">from</span> transformers <span class="kw">import</span> Trainer, TrainingArguments
+<span class="kw">from</span> datasets <span class="kw">import</span> load_dataset
+
+<span class="cm"># 1. Load Pretrained BERT Model & Tokenizer with classification head</span>
+model_name = <span class="st">"bert-base-uncased"</span>
+tokenizer  = AutoTokenizer.<span class="fn">from_pretrained</span>(model_name)
+model      = AutoModelForSequenceClassification.<span class="fn">from_pretrained</span>(model_name, num_labels=<span class="nu">2</span>)
+
+<span class="cm"># 2. Tokenize dataset</span>
+<span class="kw">def</span> <span class="fn">tokenize_function</span>(examples):
+    <span class="kw">return</span> tokenizer(examples[<span class="st">"text"</span>], padding=<span class="st">"max_length"</span>, truncation=<span class="kw">True</span>, max_length=<span class="nu">128</span>)
+
+dataset = <span class="fn">load_dataset</span>(<span class="st">"imdb"</span>, split={<span class="st">"train"</span>: <span class="st">"train[:2000]"</span>, <span class="st">"test"</span>: <span class="st">"test[:500]"</span>})
+tokenized_datasets = dataset.<span class="fn">map</span>(tokenize_function, batched=<span class="kw">True</span>)
+
+<span class="cm"># 3. Configure Fine-tuning parameters</span>
+training_args = <span class="cl">TrainingArguments</span>(
+    output_dir=<span class="st">"./bert_sentiment_output"</span>,
+    eval_strategy=<span class="st">"epoch"</span>,
+    learning_rate=<span class="nu">2e-5</span>,          <span class="cm"># Low learning rate for pretrained weights</span>
+    per_device_train_batch_size=<span class="nu">16</span>,
+    num_train_epochs=<span class="nu">3</span>,
+    weight_decay=<span class="nu">0.01</span>,
+    fp16=torch.cuda.<span class="fn">is_available</span>()
+)
+
+<span class="cm"># 4. Train with Hugging Face Trainer</span>
+trainer = <span class="cl">Trainer</span>(
+    model=model,
+    args=training_args,
+    train_dataset=tokenized_datasets[<span class="st">"train"</span>],
+    eval_dataset=tokenized_datasets[<span class="st">"test"</span>],
+)
+<span class="cm"># trainer.train()</span>
+<span class="fn">print</span>(<span class="st">"✅ BERT Classification pipeline configured!"</span>)</pre>
+      </div>
+    </div>
+  </div>

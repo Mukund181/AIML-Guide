@@ -1,0 +1,618 @@
+<!-- ============================== CHAPTER 2: PYTHON ============================== -->
+  <div class="chapter ch2" id="ch2">
+    <div class="chapter-header">
+      <div class="chapter-num">02</div>
+      <div>
+        <h2>Python Foundations</h2>
+        <div class="chapter-sub">Variables, Strings, Loops, Functions, Classes, and File I/O</div>
+      </div>
+    </div>
+
+    <div class="section" id="py-vars">
+      <h3>Variables &amp; Data Types</h3>
+      <p>Python is dynamically typed â€” you don't need to declare types. It's the most popular language for AI/ML because of its simple syntax and massive ecosystem.</p>
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="cc-icon">ðŸ”¢</div>
+          <h4>int / float</h4>
+          <p>Whole numbers and decimals. Used for counts, measurements, model weights, loss values.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">ðŸ’¬</div>
+          <h4>str</h4>
+          <p>Text data. Used for NLP, file paths, labels, dataset column names, prompts.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">â˜‘ï¸</div>
+          <h4>bool</h4>
+          <p>True/False. Used in conditions, binary classification outputs, feature flags.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">ðŸ“¦</div>
+          <h4>list / tuple</h4>
+          <p>Ordered collections. Lists are mutable; tuples are immutable. Used for storing datasets and sequences.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">ðŸ—‚ï¸</div>
+          <h4>dict</h4>
+          <p>Key-value pairs. Used for storing parameters, configs, model hyperparameters, JSON data.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">ðŸ”—</div>
+          <h4>set</h4>
+          <p>Unordered collection of unique items. Used for removing duplicates, membership testing.</p>
+        </div>
+      </div>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>python_basics.py</span>
+        </div>
+        <pre><span class="cm"># Variables â€” no type declaration needed</span>
+age = <span class="nu">21</span>
+gpa = <span class="nu">3.8</span>
+name = <span class="st">"Mukund"</span>
+is_student = <span class="kw">True</span>
+
+<span class="cm"># List â€” ordered, mutable</span>
+scores = [<span class="nu">85</span>, <span class="nu">92</span>, <span class="nu">78</span>, <span class="nu">95</span>]
+scores.append(<span class="nu">88</span>)     <span class="cm"># add to end</span>
+<span class="fn">print</span>(scores[<span class="nu">0</span>])        <span class="cm"># output: 85  (0-indexed)</span>
+<span class="fn">print</span>(scores[-<span class="nu">1</span>])       <span class="cm"># output: 88  (last element)</span>
+<span class="fn">print</span>(scores[<span class="nu">1</span>:<span class="nu">3</span>])      <span class="cm"># output: [92, 78] (slicing)</span>
+
+<span class="cm"># Tuple â€” ordered, immutable (can't be changed after creation)</span>
+dimensions = (<span class="nu">28</span>, <span class="nu">28</span>)   <span class="cm"># image size â€” won't accidentally change</span>
+
+<span class="cm"># Dict â€” key-value store</span>
+student = {<span class="st">"name"</span>: <span class="st">"Mukund"</span>, <span class="st">"age"</span>: <span class="nu">21</span>, <span class="st">"gpa"</span>: <span class="nu">3.8</span>}
+<span class="fn">print</span>(student[<span class="st">"name"</span>])   <span class="cm"># output: Mukund</span>
+student[<span class="st">"year"</span>] = <span class="nu">3</span>     <span class="cm"># add new key</span>
+
+<span class="cm"># Set â€” unique items only</span>
+unique_labels = {<span class="st">"cat"</span>, <span class="st">"dog"</span>, <span class="st">"cat"</span>, <span class="st">"bird"</span>}
+<span class="fn">print</span>(unique_labels)     <span class="cm"># {'cat', 'dog', 'bird'} â€” no duplicates</span>
+
+<span class="cm"># Type checking and conversion</span>
+<span class="fn">print</span>(<span class="fn">type</span>(age))         <span class="cm"># &lt;class 'int'&gt;</span>
+x = <span class="fn">int</span>(<span class="st">"42"</span>)           <span class="cm"># str â†’ int</span>
+y = <span class="fn">str</span>(<span class="nu">3.14</span>)           <span class="cm"># float â†’ str</span>
+z = <span class="fn">float</span>(<span class="st">"3.14"</span>)       <span class="cm"># str â†’ float</span></pre>
+      </div>
+
+      <div class="info-box tip">
+        <strong>ðŸ’¡ Tip</strong>
+        Python uses indentation (4 spaces) instead of curly braces {}. Getting this wrong is the #1 beginner error! Also, Python is case-sensitive: <code>Name</code> and <code>name</code> are different variables.
+      </div>
+    </div>
+
+    <div class="section" id="py-strings">
+      <h3>Working with Strings</h3>
+      <p>Strings are essential for NLP and text processing. Python has powerful built-in string methods.</p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>strings.py</span>
+        </div>
+        <pre>text = <span class="st">"  Hello, Machine Learning World!  "</span>
+
+<span class="cm"># Common string methods</span>
+<span class="fn">print</span>(text.<span class="fn">strip</span>())         <span class="cm"># remove whitespace from both ends</span>
+<span class="fn">print</span>(text.<span class="fn">lower</span>())         <span class="cm"># "  hello, machine learning world!  "</span>
+<span class="fn">print</span>(text.<span class="fn">upper</span>())         <span class="cm"># "  HELLO, MACHINE LEARNING WORLD!  "</span>
+<span class="fn">print</span>(text.<span class="fn">replace</span>(<span class="st">"World"</span>, <span class="st">"ðŸŒ"</span>))
+
+<span class="cm"># Split â€” VERY useful for text processing / NLP</span>
+sentence = <span class="st">"AI is the future of technology"</span>
+words = sentence.<span class="fn">split</span>()       <span class="cm"># ['AI', 'is', 'the', 'future', 'of', 'technology']</span>
+<span class="fn">print</span>(<span class="fn">len</span>(words))              <span class="cm"># 6 words</span>
+
+<span class="cm"># Join â€” opposite of split</span>
+<span class="fn">print</span>(<span class="st">" â†’ "</span>.<span class="fn">join</span>(words))       <span class="cm"># "AI â†’ is â†’ the â†’ future â†’ of â†’ technology"</span>
+
+<span class="cm"># f-strings (formatted strings) â€” the modern way</span>
+name = <span class="st">"Mukund"</span>
+accuracy = <span class="nu">0.9567</span>
+<span class="fn">print</span>(<span class="st">f"Hi {name}, your model accuracy is {accuracy:.2%}"</span>)
+<span class="cm"># "Hi Mukund, your model accuracy is 95.67%"</span>
+
+<span class="cm"># Check contents</span>
+<span class="fn">print</span>(<span class="st">"AI"</span> <span class="kw">in</span> sentence)      <span class="cm"># True</span>
+<span class="fn">print</span>(sentence.<span class="fn">startswith</span>(<span class="st">"AI"</span>))  <span class="cm"># True</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="py-loops">
+      <h3>Loops &amp; Conditions</h3>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>loops_conditions.py</span>
+        </div>
+        <pre><span class="cm"># if-elif-else</span>
+score = <span class="nu">75</span>
+<span class="kw">if</span> score >= <span class="nu">90</span>:
+    grade = <span class="st">"A"</span>
+<span class="kw">elif</span> score >= <span class="nu">75</span>:
+    grade = <span class="st">"B"</span>
+<span class="kw">elif</span> score >= <span class="nu">60</span>:
+    grade = <span class="st">"C"</span>
+<span class="kw">else</span>:
+    grade = <span class="st">"F"</span>
+<span class="fn">print</span>(<span class="st">f"Grade: {grade}"</span>)    <span class="cm"># Grade: B</span>
+
+<span class="cm"># for loop â€” iterating over a list</span>
+fruits = [<span class="st">"apple"</span>, <span class="st">"banana"</span>, <span class="st">"mango"</span>]
+<span class="kw">for</span> fruit <span class="kw">in</span> fruits:
+    <span class="fn">print</span>(fruit)
+
+<span class="cm"># for loop with index â€” enumerate()</span>
+<span class="kw">for</span> i, fruit <span class="kw">in</span> <span class="fn">enumerate</span>(fruits):
+    <span class="fn">print</span>(<span class="st">f"{i}: {fruit}"</span>)    <span class="cm"># 0: apple, 1: banana, ...</span>
+
+<span class="cm"># range() â€” loop N times</span>
+<span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="nu">5</span>):        <span class="cm"># i goes 0,1,2,3,4</span>
+    <span class="fn">print</span>(i)
+
+<span class="cm"># while loop</span>
+count = <span class="nu">0</span>
+<span class="kw">while</span> count < <span class="nu">3</span>:
+    <span class="fn">print</span>(<span class="st">f"count = {count}"</span>)
+    count += <span class="nu">1</span>
+
+<span class="cm"># List comprehension â€” create list from loop (very Pythonic!)</span>
+squares = [x**<span class="nu">2</span> <span class="kw">for</span> x <span class="kw">in</span> <span class="fn">range</span>(<span class="nu">6</span>)]
+<span class="cm"># squares = [0, 1, 4, 9, 16, 25]</span>
+
+<span class="cm"># Filtered comprehension</span>
+even_squares = [x**<span class="nu">2</span> <span class="kw">for</span> x <span class="kw">in</span> <span class="fn">range</span>(<span class="nu">10</span>) <span class="kw">if</span> x % <span class="nu">2</span> == <span class="nu">0</span>]
+<span class="cm"># [0, 4, 16, 36, 64]</span>
+
+<span class="cm"># Dict comprehension</span>
+word_lengths = {word: <span class="fn">len</span>(word) <span class="kw">for</span> word <span class="kw">in</span> [<span class="st">"AI"</span>, <span class="st">"ML"</span>, <span class="st">"DL"</span>]}
+<span class="cm"># {'AI': 2, 'ML': 2, 'DL': 2}</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="py-generators">
+      <h3>Iterators &amp; Generators (yield)</h3>
+      <p>In machine learning, datasets are frequently tens or hundreds of gigabytesâ€”far too large to load into RAM all at once. Iterators and generators allow you to stream data <strong>lazily on-demand</strong> with constant $O(1)$ memory consumption.</p>
+
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="cc-icon">â†»</div>
+          <h4>The Iterator Protocol</h4>
+          <p>An <strong>iterable</strong> is any object you can loop over (lists, dicts, strings). An <strong>iterator</strong> is the object that produces items one by one via <code>__iter__()</code> and <code>__next__()</code>, raising <code>StopIteration</code> when exhausted.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">âš¡</div>
+          <h4>The <code>yield</code> Keyword</h4>
+          <p>Unlike <code>return</code>, which terminates a function and dumps all items into RAM, <code>yield</code> pauses function execution, saves local variable states, and emits a single item. Execution resumes right after the <code>yield</code> on the next call.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">ðŸ’¾</div>
+          <h4>Memory: O(1) vs O(N)</h4>
+          <p>A list comprehension <code>[x for x in range(10_000_000)]</code> allocates ~800MB in RAM. A generator expression <code>(x for x in range(10_000_000))</code> uses only <strong>~200 bytes</strong> regardless of dataset size!</p>
+        </div>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div><span>generators_and_streaming.py</span></div>
+        <pre><span class="cm"># 1. Understanding iter() and next()</span>
+nums = [<span class="nu">10</span>, <span class="nu">20</span>, <span class="nu">30</span>]
+it = <span class="fn">iter</span>(nums)
+<span class="fn">print</span>(<span class="fn">next</span>(it))  <span class="cm"># 10</span>
+<span class="fn">print</span>(<span class="fn">next</span>(it))  <span class="cm"># 20</span>
+<span class="fn">print</span>(<span class="fn">next</span>(it))  <span class="cm"># 30</span>
+<span class="cm"># next(it) now raises StopIteration!</span>
+
+<span class="cm"># 2. Generator Function with yield</span>
+<span class="kw">def</span> <span class="fn">count_up_to</span>(max_val):
+    count = <span class="nu">1</span>
+    <span class="kw">while</span> count &lt;= max_val:
+        <span class="kw">yield</span> count       <span class="cm"># Pauses and returns value</span>
+        count += <span class="nu">1</span>        <span class="cm"># Resumes here next time</span>
+
+counter = <span class="fn">count_up_to</span>(<span class="nu">3</span>)
+<span class="kw">for</span> n <span class="kw">in</span> counter:
+    <span class="fn">print</span>(n)              <span class="cm"># 1, 2, 3</span>
+
+<span class="cm"># 3. Generator Expressions (Lazy Comprehensions)</span>
+gen_exp = (x**<span class="nu">2</span> <span class="kw">for</span> x <span class="kw">in</span> <span class="fn">range</span>(<span class="nu">1_000_000</span>))  <span class="cm"># Instant, ~200 bytes RAM!</span>
+<span class="fn">print</span>(<span class="fn">next</span>(gen_exp))      <span class="cm"># 0</span>
+<span class="fn">print</span>(<span class="fn">next</span>(gen_exp))      <span class="cm"># 1</span>
+
+<span class="cm"># 4. Realistic ML Pipeline: Streaming Mini-Batches (PyTorch DataLoader intuition)</span>
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">def</span> <span class="fn">batch_data_generator</span>(X, y, batch_size=<span class="nu">32</span>, shuffle=<span class="kw">True</span>):
+    <span class="st">"""Yields batches of features and targets without duplicating memory"""</span>
+    n_samples = <span class="fn">len</span>(X)
+    indices = np.<span class="fn">arange</span>(n_samples)
+    <span class="kw">if</span> shuffle:
+        np.random.<span class="fn">shuffle</span>(indices)
+    
+    <span class="kw">for</span> start_idx <span class="kw">in</span> <span class="fn">range</span>(<span class="nu">0</span>, n_samples, batch_size):
+        batch_idx = indices[start_idx : start_idx + batch_size]
+        <span class="kw">yield</span> X[batch_idx], y[batch_idx]
+
+<span class="cm"># Simulate 1,000 samples</span>
+X_dummy = np.random.<span class="fn">randn</span>(<span class="nu">1000</span>, <span class="nu">10</span>)
+y_dummy = np.random.<span class="fn">randint</span>(<span class="nu">0</span>, <span class="nu">2</span>, <span class="nu">1000</span>)
+
+<span class="cm"># Train loop streaming batches</span>
+<span class="kw">for</span> epoch <span class="kw">in</span> <span class="fn">range</span>(<span class="nu">2</span>):
+    <span class="kw">for</span> batch_x, batch_y <span class="kw">in</span> <span class="fn">batch_data_generator</span>(X_dummy, y_dummy, batch_size=<span class="nu">128</span>):
+        <span class="cm"># In PyTorch: loss = model(batch_x); loss.backward(); optimizer.step()</span>
+        <span class="kw">pass</span>
+<span class="fn">print</span>(<span class="st">"Successfully streamed batches with zero memory blowup!"</span>)</pre>
+      </div>
+    </div>
+
+    <div class="section" id="py-func">
+      <h3>Functions</h3>
+      <p>Functions are reusable blocks of code. In ML, almost everything gets wrapped in a function â€” preprocessing, training, evaluation, plotting.</p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>functions.py</span>
+        </div>
+        <pre><span class="cm"># Basic function</span>
+<span class="kw">def</span> <span class="fn">greet</span>(name):
+    <span class="kw">return</span> <span class="st">f"Hello, {name}!"</span>
+
+<span class="fn">print</span>(<span class="fn">greet</span>(<span class="st">"Mukund"</span>))   <span class="cm"># Hello, Mukund!</span>
+
+<span class="cm"># Default arguments</span>
+<span class="kw">def</span> <span class="fn">power</span>(base, exponent=<span class="nu">2</span>):
+    <span class="kw">return</span> base ** exponent
+
+<span class="fn">print</span>(<span class="fn">power</span>(<span class="nu">3</span>))     <span class="cm"># 9  (uses default exponent=2)</span>
+<span class="fn">print</span>(<span class="fn">power</span>(<span class="nu">2</span>, <span class="nu">10</span>)) <span class="cm"># 1024</span>
+
+<span class="cm"># Lambda â€” one-line anonymous function (common in ML)</span>
+square = <span class="kw">lambda</span> x: x**<span class="nu">2</span>
+<span class="fn">print</span>(square(<span class="nu">5</span>))    <span class="cm"># 25</span>
+
+<span class="cm"># *args â€” variable number of arguments</span>
+<span class="kw">def</span> <span class="fn">average</span>(*numbers):
+    <span class="kw">return</span> <span class="fn">sum</span>(numbers) / <span class="fn">len</span>(numbers)
+
+<span class="fn">print</span>(<span class="fn">average</span>(<span class="nu">85</span>, <span class="nu">92</span>, <span class="nu">78</span>))  <span class="cm"># 85.0</span>
+
+<span class="cm"># A realistic ML example: Min-Max normalization</span>
+<span class="kw">def</span> <span class="fn">normalize</span>(data):
+    <span class="st">"""Scale values to 0-1 range (Min-Max normalization)"""</span>
+    min_val = <span class="fn">min</span>(data)
+    max_val = <span class="fn">max</span>(data)
+    <span class="kw">return</span> [(x - min_val) / (max_val - min_val) <span class="kw">for</span> x <span class="kw">in</span> data]
+
+raw = [<span class="nu">10</span>, <span class="nu">50</span>, <span class="nu">30</span>, <span class="nu">80</span>, <span class="nu">20</span>]
+<span class="fn">print</span>(<span class="fn">normalize</span>(raw))  <span class="cm"># [0.0, 0.57, 0.29, 1.0, 0.14]</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="py-oop">
+      <h3>Classes &amp; OOP (Object-Oriented Programming)</h3>
+      <p>Classes bundle data and functions together. PyTorch uses classes heavily for defining neural networks. Understanding OOP will help you read ML library source code.</p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>classes.py</span>
+        </div>
+        <pre><span class="kw">class</span> <span class="cl">MLModel</span>:
+    <span class="st">"""A simple class to demonstrate OOP concepts"""</span>
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, name, accuracy=<span class="nu">0.0</span>):
+        <span class="cm"># __init__ runs when you create a new object</span>
+        self.name = name
+        self.accuracy = accuracy
+        self.trained = <span class="kw">False</span>
+
+    <span class="kw">def</span> <span class="fn">train</span>(self, data):
+        <span class="fn">print</span>(<span class="st">f"Training {self.name} on {len(data)} samples..."</span>)
+        self.trained = <span class="kw">True</span>
+        self.accuracy = <span class="nu">0.95</span>
+
+    <span class="kw">def</span> <span class="fn">predict</span>(self, input_data):
+        <span class="kw">if not</span> self.trained:
+            <span class="fn">print</span>(<span class="st">"âš ï¸ Model not trained yet!"</span>)
+            <span class="kw">return</span> <span class="kw">None</span>
+        <span class="kw">return</span> <span class="st">f"Prediction for {input_data}"</span>
+
+    <span class="kw">def</span> <span class="fn">__str__</span>(self):
+        <span class="kw">return</span> <span class="st">f"Model({self.name}, acc={self.accuracy:.2%})"</span>
+
+<span class="cm"># Using the class</span>
+model = <span class="cl">MLModel</span>(<span class="st">"RandomForest"</span>)
+model.<span class="fn">train</span>([<span class="nu">1</span>,<span class="nu">2</span>,<span class="nu">3</span>,<span class="nu">4</span>,<span class="nu">5</span>])
+<span class="fn">print</span>(model)            <span class="cm"># Model(RandomForest, acc=95.00%)</span>
+<span class="fn">print</span>(model.<span class="fn">predict</span>(<span class="nu">42</span>)) <span class="cm"># Prediction for 42</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="py-typing">
+      <h3>Type Annotations &amp; Python Modules</h3>
+      <p>Modern production machine learning requires robust, maintainable code. Type hints (PEP 484) make your data shapes and function signatures explicit, catching costly bugs before training runs. Python modules and packages organize your codebase cleanly.</p>
+
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="cc-icon">🏷️</div>
+          <h4>Type Hints (typing)</h4>
+          <p>Specify expected types for arguments and return values using primitives (<code>int</code>, <code>float</code>, <code>str</code>) or generic containers from the <code>typing</code> module (<code>List</code>, <code>Dict</code>, <code>Optional</code>, <code>Union</code>, <code>Callable</code>).</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">📦</div>
+          <h4>Modules &amp; Packages</h4>
+          <p>A <strong>module</strong> is a <code>.py</code> file. A <strong>package</strong> is a directory with an <code>__init__.py</code> file. Use <code>if __name__ == "__main__":</code> to ensure test code only runs when executed directly, not on import.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">🛡️</div>
+          <h4>Static Type Checking</h4>
+          <p>Tools like <code>mypy</code> inspect your code statically: <code>mypy pipeline.py</code> flags type mismatches (e.g. passing a string instead of a NumPy array) before hours of training compute are wasted.</p>
+        </div>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div><span>typing_and_modules.py</span></div>
+        <pre><span class="kw">from</span> typing <span class="kw">import</span> <span class="cl">List</span>, <span class="cl">Dict</span>, <span class="cl">Tuple</span>, <span class="cl">Optional</span>, <span class="cl">Union</span>, <span class="cl">Callable</span>, <span class="cl">Any</span>
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># Type aliases for readability in ML pipelines</span>
+Vector = <span class="cl">List</span>[<span class="fn">float</span>]
+Matrix = <span class="cl">List</span>[Vector]
+
+<span class="cm"># 1. Annotated Function Signatures</span>
+<span class="kw">def</span> <span class="fn">calculate_metrics</span>(
+    y_true: np.ndarray, 
+    y_pred: np.ndarray, 
+    threshold: <span class="fn">float</span> = <span class="nu">0.5</span>
+) -&gt; <span class="cl">Dict</span>[<span class="fn">str</span>, <span class="fn">float</span>]:
+    <span class="st">"""Computes accuracy and threshold summary with strict type safety"""</span>
+    binary_preds = (y_pred &gt;= threshold).<span class="fn">astype</span>(<span class="fn">int</span>)
+    acc = <span class="fn">float</span>(np.<span class="fn">mean</span>(y_true == binary_preds))
+    <span class="kw">return</span> {<span class="st">"accuracy"</span>: acc, <span class="st">"threshold"</span>: threshold}
+
+<span class="cm"># 2. Optional and Union Types</span>
+<span class="kw">def</span> <span class="fn">load_weights</span>(
+    checkpoint_path: <span class="cl">Optional</span>[<span class="fn">str</span>] = <span class="kw">None</span>, 
+    device: <span class="cl">Union</span>[<span class="fn">str</span>, <span class="fn">int</span>] = <span class="st">"cpu"</span>
+) -&gt; <span class="cl">Dict</span>[<span class="fn">str</span>, <span class="cl">Any</span>]:
+    <span class="kw">if</span> checkpoint_path <span class="kw">is</span> <span class="kw">None</span>:
+        <span class="fn">print</span>(<span class="st">f"Initializing random weights on device {device}"</span>)
+        <span class="kw">return</span> {<span class="st">"layer1"</span>: np.<span class="fn">zeros</span>((<span class="nu">10</span>, <span class="nu">10</span>))}
+    <span class="fn">print</span>(<span class="st">f"Loading weights from {checkpoint_path}"</span>)
+    <span class="kw">return</span> {}
+
+<span class="cm"># 3. Higher-order function with Callable</span>
+<span class="kw">def</span> <span class="fn">apply_transform</span>(
+    data: np.ndarray, 
+    transform_fn: <span class="cl">Callable</span>[[np.ndarray], np.ndarray]
+) -&gt; np.ndarray:
+    <span class="kw">return</span> transform_fn(data)
+
+<span class="cm"># 4. Standard ML Package Directory Structure</span>
+<span class="st">"""
+my_ml_project/
+â”œâ”€â”€ data/                  # Raw &amp; processed CSVs
+â”œâ”€â”€ src/
+â”‚   â”œâ”€â”€ __init__.py        # Makes src a package
+â”‚   â”œâ”€â”€ preprocessing.py   # Normalization &amp; encoders
+â”‚   â”œâ”€â”€ model.py           # PyTorch / sklearn architectures
+â”‚   â””â”€â”€ evaluate.py        # Metrics &amp; plotting
+â”œâ”€â”€ tests/
+â”‚   â””â”€â”€ test_model.py      # pytest test cases
+â”œâ”€â”€ requirements.txt       # Pinned dependencies
+â””â”€â”€ README.md
+"""</span>
+
+<span class="cm"># 5. The __name__ == "__main__" entrypoint guard</span>
+<span class="kw">if</span> __name__ == <span class="st">"__main__"</span>:
+    <span class="cm"># This code only executes when running: python typing_and_modules.py</span>
+    <span class="cm"># It will NOT execute when someone imports this file into another module!</span>
+    y_t = np.<span class="fn">array</span>([<span class="nu">1</span>, <span class="nu">0</span>, <span class="nu">1</span>, <span class="nu">1</span>])
+    y_p = np.<span class="fn">array</span>([<span class="nu">0.9</span>, <span class="nu">0.2</span>, <span class="nu">0.8</span>, <span class="nu">0.3</span>])
+    results = <span class="fn">calculate_metrics</span>(y_t, y_p)
+    <span class="fn">print</span>(<span class="st">"Metrics:"</span>, results)</pre>
+      </div>
+      <div class="info-box tip"><strong>💡 Python 3.10+ Modern Syntax</strong>
+        In Python 3.10+, you can write <code>list[int]</code> instead of <code>List[int]</code>, and <code>str | None</code> instead of <code>Optional[str]</code>. Both forms are common in real repos.
+      </div>
+    </div>
+
+    <div class="section" id="py-errors">
+      <h3>Error Handling (try / except)</h3>
+      <p>Your ML code will inevitably hit errors: a missing file, corrupted data, or division by zero. Use try/except blocks to handle these gracefully instead of crashing.</p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>errors.py</span>
+        </div>
+        <pre><span class="cm"># Basic error handling</span>
+<span class="kw">try</span>:
+    result = <span class="nu">10</span> / <span class="nu">0</span>
+<span class="kw">except</span> <span class="cl">ZeroDivisionError</span>:
+    <span class="fn">print</span>(<span class="st">"Cannot divide by zero!"</span>)
+<span class="kw">except</span> <span class="cl">Exception</span> <span class="kw">as</span> e:
+    <span class="fn">print</span>(<span class="st">f"An unexpected error occurred: {e}"</span>)
+<span class="kw">finally</span>:
+    <span class="fn">print</span>(<span class="st">"This always runs (good for closing files/connections)."</span>)
+
+<span class="cm"># Realistic ML scenario: missing dataset</span>
+<span class="kw">try</span>:
+    <span class="kw">import</span> pandas <span class="kw">as</span> pd
+    df = pd.<span class="fn">read_csv</span>(<span class="st">"missing_data.csv"</span>)
+<span class="kw">except</span> <span class="cl">FileNotFoundError</span>:
+    <span class="fn">print</span>(<span class="st">"Dataset not found. Please check the file path."</span>)</pre>
+      </div>
+    </div>
+
+    <div class="section" id="py-decorators">
+      <h3>Decorators (Advanced)</h3>
+      <p>Decorators modify the behavior of a function without changing its code. They are heavily used in ML frameworks (like PyTorch and Flask) for routing, logging, or timing execution.</p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>decorators.py</span>
+        </div>
+        <pre><span class="kw">import</span> time
+
+<span class="cm"># Define a decorator to measure execution time</span>
+<span class="kw">def</span> <span class="fn">timer_decorator</span>(func):
+    <span class="kw">def</span> <span class="fn">wrapper</span>(*args, **kwargs):
+        start = time.<span class="fn">time</span>()
+        result = <span class="fn">func</span>(*args, **kwargs)
+        end = time.<span class="fn">time</span>()
+        <span class="fn">print</span>(<span class="st">f"Function '{func.__name__}' took {end - start:.4f} seconds"</span>)
+        <span class="kw">return</span> result
+    <span class="kw">return</span> wrapper
+
+<span class="cm"># Apply the decorator using @</span>
+<span class="kw">@timer_decorator</span>
+<span class="kw">def</span> <span class="fn">train_dummy_model</span>(epochs):
+    <span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(epochs):
+        time.<span class="fn">sleep</span>(<span class="nu">0.01</span>)  <span class="cm"># Simulate training</span>
+    <span class="kw">return</span> <span class="st">"Training complete"</span>
+
+<span class="fn">print</span>(<span class="fn">train_dummy_model</span>(<span class="nu">50</span>))
+<span class="cm"># Output:</span>
+<span class="cm"># Function 'train_dummy_model' took 0.5052 seconds</span>
+<span class="cm"># Training complete</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="py-fileio">
+      <h3>File Handling</h3>
+      <p>Reading and writing files is essential â€” you'll load CSV datasets, save model weights, and log results.</p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>file_handling.py</span>
+        </div>
+        <pre><span class="cm"># Writing to a file</span>
+<span class="kw">with</span> <span class="fn">open</span>(<span class="st">"results.txt"</span>, <span class="st">"w"</span>) <span class="kw">as</span> f:
+    f.<span class="fn">write</span>(<span class="st">"Model: RandomForest\n"</span>)
+    f.<span class="fn">write</span>(<span class="st">"Accuracy: 95.2%\n"</span>)
+
+<span class="cm"># Reading a file</span>
+<span class="kw">with</span> <span class="fn">open</span>(<span class="st">"results.txt"</span>, <span class="st">"r"</span>) <span class="kw">as</span> f:
+    content = f.<span class="fn">read</span>()
+    <span class="fn">print</span>(content)
+
+<span class="cm"># Reading line by line</span>
+<span class="kw">with</span> <span class="fn">open</span>(<span class="st">"results.txt"</span>) <span class="kw">as</span> f:
+    <span class="kw">for</span> line <span class="kw">in</span> f:
+        <span class="fn">print</span>(line.<span class="fn">strip</span>())
+
+<span class="cm"># Working with JSON (very common for configs & API responses)</span>
+<span class="kw">import</span> json
+
+config = {<span class="st">"model"</span>: <span class="st">"GPT-4"</span>, <span class="st">"temperature"</span>: <span class="nu">0.7</span>, <span class="st">"max_tokens"</span>: <span class="nu">500</span>}
+
+<span class="cm"># Save to JSON</span>
+<span class="kw">with</span> <span class="fn">open</span>(<span class="st">"config.json"</span>, <span class="st">"w"</span>) <span class="kw">as</span> f:
+    json.<span class="fn">dump</span>(config, f, indent=<span class="nu">2</span>)
+
+<span class="cm"># Load from JSON</span>
+<span class="kw">with</span> <span class="fn">open</span>(<span class="st">"config.json"</span>) <span class="kw">as</span> f:
+    loaded = json.<span class="fn">load</span>(f)
+<span class="fn">print</span>(loaded[<span class="st">"model"</span>])  <span class="cm"># GPT-4</span></pre>
+      </div>
+    </div>
+  </div>
+
+    <!-- PYTEST SECTION -->
+    <div class="section" id="py-pytest">
+      <h3>Testing with pytest</h3>
+      <p>Writing tests ensures your code works correctly and prevents regressions when you refactor. <code>pytest</code> is the industry-standard testing framework for Python.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div><span>test_ml_utils.py</span></div>
+        <pre><span class="cm"># Install: pip install pytest</span>
+<span class="cm"># File: test_ml_utils.py</span>
+
+<span class="kw">import</span> pytest
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># --- Function to test ---</span>
+<span class="kw">def</span> <span class="fn">normalize</span>(arr):
+    <span class="st">"""Scale array to [0, 1]"""</span>
+    min_v, max_v = arr.<span class="fn">min</span>(), arr.<span class="fn">max</span>()
+    <span class="kw">if</span> max_v == min_v:
+        <span class="kw">raise</span> <span class="cl">ValueError</span>(<span class="st">"Cannot normalize constant array"</span>)
+    <span class="kw">return</span> (arr - min_v) / (max_v - min_v)
+
+<span class="cm"># --- Tests ---</span>
+<span class="kw">def</span> <span class="fn">test_normalize_basic</span>():
+    arr = np.<span class="fn">array</span>([<span class="nu">0</span>, <span class="nu">5</span>, <span class="nu">10</span>])
+    result = <span class="fn">normalize</span>(arr)
+    <span class="kw">assert</span> result[<span class="nu">0</span>] == <span class="nu">0.0</span>
+    <span class="kw">assert</span> result[<span class="nu">-1</span>] == <span class="nu">1.0</span>
+
+<span class="kw">def</span> <span class="fn">test_normalize_min_max</span>():
+    arr = np.<span class="fn">array</span>([<span class="nu">2</span>, <span class="nu">4</span>, <span class="nu">6</span>])
+    result = <span class="fn">normalize</span>(arr)
+    <span class="kw">assert</span> np.<span class="fn">isclose</span>(result.<span class="fn">max</span>(), <span class="nu">1.0</span>)
+    <span class="kw">assert</span> np.<span class="fn">isclose</span>(result.<span class="fn">min</span>(), <span class="nu">0.0</span>)
+
+<span class="kw">def</span> <span class="fn">test_constant_array_raises</span>():
+    <span class="kw">with</span> pytest.<span class="fn">raises</span>(<span class="cl">ValueError</span>):
+        <span class="fn">normalize</span>(np.<span class="fn">array</span>([<span class="nu">5</span>, <span class="nu">5</span>, <span class="nu">5</span>]))
+
+<span class="cm"># --- Parametrize: run one test with multiple inputs ---</span>
+@pytest.<span class="fn">mark.parametrize</span>(<span class="st">"arr,expected_max"</span>, [
+    (np.<span class="fn">array</span>([<span class="nu">1</span>, <span class="nu">2</span>, <span class="nu">3</span>]), <span class="nu">1.0</span>),
+    (np.<span class="fn">array</span>([<span class="nu">-5</span>, <span class="nu">0</span>, <span class="nu">5</span>]), <span class="nu">1.0</span>),
+])
+<span class="kw">def</span> <span class="fn">test_max_is_one</span>(arr, expected_max):
+    <span class="kw">assert</span> <span class="fn">normalize</span>(arr).<span class="fn">max</span>() == expected_max
+
+<span class="cm"># Run all tests: pytest test_ml_utils.py -v</span></pre>
+      </div>
+      <div class="info-box tip"><strong>💡 pytest Commands</strong>
+        <code>pytest</code> — run all tests · <code>pytest -v</code> — verbose · <code>pytest -k "normalize"</code> — run by name · <code>pytest --tb=short</code> — brief tracebacks
+      </div>
+    </div>
+
+    <!-- GIT SECTION -->
+    <div class="section" id="py-git">
+      <h3>Git &amp; GitHub — Version Control</h3>
+      <p>Git tracks every change to your code. GitHub hosts your code in the cloud. Together they are essential for collaboration and building a portfolio.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div><span>terminal — git workflow</span></div>
+        <pre><span class="cm"># ----- INITIAL SETUP (once) -----</span>
+git config --global user.name  <span class="st">"Your Name"</span>
+git config --global user.email <span class="st">"you@email.com"</span>
+
+<span class="cm"># ----- START A PROJECT -----</span>
+git <span class="fn">init</span>                          <span class="cm"># Initialize git in current folder</span>
+git <span class="fn">clone</span> &lt;url&gt;                  <span class="cm"># Clone an existing repo</span>
+
+<span class="cm"># ----- DAILY WORKFLOW -----</span>
+git status                        <span class="cm"># See what changed</span>
+git add .                         <span class="cm"># Stage all changes</span>
+git add model.py                  <span class="cm"># Stage specific file</span>
+git <span class="fn">commit</span> -m <span class="st">"Add linear regression model"</span>  <span class="cm"># Save snapshot</span>
+git push origin main              <span class="cm"># Upload to GitHub</span>
+git pull origin main              <span class="cm"># Download latest changes</span>
+
+<span class="cm"># ----- BRANCHES (work on features safely) -----</span>
+git checkout -b feature/rag-pipeline    <span class="cm"># Create &amp; switch branch</span>
+git checkout main                       <span class="cm"># Go back to main</span>
+git merge feature/rag-pipeline          <span class="cm"># Merge branch into main</span>
+
+<span class="cm"># ----- USEFUL COMMANDS -----</span>
+git log --oneline                 <span class="cm"># See commit history</span>
+git diff                          <span class="cm"># See unstaged changes</span>
+git stash                         <span class="cm"># Temporarily save work</span>
+git stash pop                     <span class="cm"># Restore stashed work</span></pre>
+      </div>
+      <div class="concept-grid">
+        <div class="concept-card"><div class="cc-icon">📁</div><h4>.gitignore</h4><p>List files Git should never track: <code>__pycache__/</code>, <code>.env</code>, <code>venv/</code>, <code>*.pkl</code> (large model files), <code>data/*.csv</code>. Keeps your repo clean.</p></div>
+        <div class="concept-card"><div class="cc-icon">🔀</div><h4>Pull Requests</h4><p>On GitHub, a PR proposes merging one branch into another. The standard way to contribute to any open-source project. Reviewers leave comments before merging.</p></div>
+        <div class="concept-card"><div class="cc-icon">🏷️</div><h4>Commit Messages</h4><p>Good format: <code>type: short description</code>. E.g. <code>feat: add BERT tokenizer</code>, <code>fix: handle NaN in preprocessing</code>, <code>docs: update README</code>.</p></div>
+      </div>
+      <div class="info-box note"><strong>📌 Portfolio Tip</strong>
+        Every ML project you build should be a GitHub repo with a clear README: what the project does, how to run it, results, and any limitations. This is your technical resume.
+      </div>
+    </div>
+

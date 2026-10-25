@@ -1,0 +1,394 @@
+<!-- ============================== CHAPTER 8: GENERATIVE AI ============================== -->
+  <div class="chapter ch8" id="ch8">
+    <div class="chapter-header">
+      <div class="chapter-num">08</div>
+      <div>
+        <h2>Generative AI &amp; LLM Engineering</h2>
+        <div class="chapter-sub">Phase 4 (Weeks 10–13) · Hugging Face, Structured Outputs, Tool Calling, LoRA &amp; Quantization</div>
+        <div style="margin-top: 8px;">
+          <span class="tag ai">Weeks 10–13</span>
+          <span class="tag dl">LLM Engineering</span>
+          <span class="tag new">High Hiring Priority</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALLOUT: LLM ENGINEERING MINDSET -->
+    <div class="info-box note">
+      <strong>LLM Engineering in Production</strong>
+      Prompting alone is insufficient for production-grade AI systems. Real-world LLM engineering demands deterministic reliability: generating strict <strong>Pydantic structured schemas</strong>, orchestrating <strong>autonomous tool calling</strong> with local function execution, understanding the <strong>LoRA/QLoRA mathematical adaptation</strong> mechanics, and sizing GPU memory budgets with <strong>4-bit/8-bit quantization</strong>.
+    </div>
+
+    <!-- ==================== SECTION 1: HUGGING FACE TRANSFORMERS MASTERY ==================== -->
+    <div class="section" id="gen-hf-core">
+      <h3>Hugging Face Transformers: Model &amp; Tokenizer Loading</h3>
+      <p>The Hugging Face <code>transformers</code> library is the standard runtime for open-weights models (LLaMA, Mistral, Gemma, Falcon, DeepSeek). Mastering the low-level API is required for custom model deployments and local inference.</p>
+
+      <h4>1. The Auto-Class Architecture &amp; Device Mapping</h4>
+      <p>Using <code>AutoTokenizer</code> and <code>AutoModelForCausalLM</code> dynamically instantiates the correct architecture based on the model repository's <code>config.json</code>:</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>hf_model_loading.py</span>
+        </div>
+        <pre><span class="kw">import</span> torch
+<span class="kw">from</span> transformers <span class="kw">import</span> AutoTokenizer, AutoModelForCausalLM
+
+model_id = <span class="st">"meta-llama/Llama-3.2-3B-Instruct"</span>
+
+<span class="cm"># 1. Load Tokenizer with proper padding side for Decoder-only models</span>
+tokenizer = AutoTokenizer.<span class="fn">from_pretrained</span>(model_id)
+tokenizer.pad_token = tokenizer.eos_token
+tokenizer.padding_side = <span class="st">"left"</span>  <span class="cm"># Left-padding is mandatory for batch generation in decoders!</span>
+
+<span class="cm"># 2. Load Model with automatic GPU/CPU placement and mixed precision</span>
+model = AutoModelForCausalLM.<span class="fn">from_pretrained</span>(
+    model_id,
+    torch_dtype=torch.bfloat16 <span class="kw">if</span> torch.cuda.is_bf16_supported() <span class="kw">else</span> torch.float16,
+    device_map=<span class="st">"auto"</span>  <span class="cm"># Automatically shards weights across available GPUs or offloads to CPU</span>
+)
+
+<span class="cm"># 3. Format with Chat Template</span>
+messages = [
+    {<span class="st">"role"</span>: <span class="st">"system"</span>, <span class="st">"content"</span>: <span class="st">"You are an expert compiler engineer. Give concise answers."</span>},
+    {<span class="st">"role"</span>: <span class="st">"user"</span>,   <span class="st">"content"</span>: <span class="st">"What is the difference between JIT and AOT compilation?"</span>}
+]
+prompt = tokenizer.<span class="fn">apply_chat_template</span>(messages, tokenize=<span class="kw">False</span>, add_generation_prompt=<span class="kw">True</span>)
+inputs = tokenizer(prompt, return_tensors=<span class="st">"pt"</span>).<span class="fn">to</span>(model.device)
+
+<span class="cm"># 4. Generate with controlled decoding strategies</span>
+<span class="kw">with</span> torch.<span class="fn">no_grad</span>():
+    output_tokens = model.<span class="fn">generate</span>(
+        **inputs,
+        max_new_tokens=<span class="nu">256</span>,
+        do_sample=<span class="kw">True</span>,
+        temperature=<span class="nu">0.3</span>,       <span class="cm"># Low temperature for factual precision</span>
+        top_p=<span class="nu">0.9</span>,             <span class="cm"># Nucleus sampling: keep top 90% cumulative probability mass</span>
+        repetition_penalty=<span class="nu">1.1</span> <span class="cm"># Penalizes repeated phrases</span>
+    )
+
+response = tokenizer.<span class="fn">decode</span>(output_tokens[<span class="nu">0</span>][inputs.input_ids.shape[<span class="nu">1</span>]:], skip_special_tokens=<span class="kw">True</span>)
+<span class="fn">print</span>(response)</pre>
+      </div>
+
+      <h4>2. Text Decoding Strategies Compared</h4>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Strategy</th>
+              <th>How It Works</th>
+              <th>Pros</th>
+              <th>Cons / Watch Outs</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Greedy Search</strong></td>
+              <td>Selects the single token with highest probability at every step: \(w_t = \arg\max P(w \mid w_{<t})\).</td>
+              <td>Fast, deterministic.</td>
+              <td>Gets stuck in repetitive loops; misses globally optimal completions.</td>
+            </tr>
+            <tr>
+              <td><strong>Beam Search</strong></td>
+              <td>Maintains top \(B\) hypotheses at each step, pruning low-likelihood paths.</td>
+              <td>High grammatical fluency.</td>
+              <td>Computationally expensive; prone to bland, generic text in open generation.</td>
+            </tr>
+            <tr>
+              <td><strong>Top-K Sampling</strong></td>
+              <td>Filters vocabulary to the top \(K\) highest probability tokens (e.g., \(K=50\)).</td>
+              <td>Removes absurd, low-probability tail tokens.</td>
+              <td>Static cutoff regardless of probability distribution shape.</td>
+            </tr>
+            <tr>
+              <td><strong>Top-P (Nucleus)</strong></td>
+              <td>Dynamically sets cutoff at the smallest set of tokens whose cumulative probability exceeds \(P\) (e.g. \(P=0.9\)).</td>
+              <td><strong>Industry standard</strong>: adapts window size based on model confidence.</td>
+              <td>Requires pairing with temperature tuning.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 2: PROMPT DESIGN, STRUCTURED OUTPUTS & TOOL CALLING ==================== -->
+    <div class="section" id="gen-prompt-tools">
+      <h3>Structured Outputs &amp; Tool Calling</h3>
+      <p>Building reliable enterprise software on top of LLMs requires moving beyond unstructured text strings. The model must produce machine-parseable JSON adhering strictly to schemas and invoke external tools autonomously.</p>
+
+      <h4>1. Strict Structured Outputs with Pydantic</h4>
+      <p>Modern inference APIs guarantee that output JSON conforms 100% to a specified Pydantic schema using grammar-constrained decoding (e.g. using OpenAI Structured Outputs or Outlines/Instructor for local models):</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>structured_outputs_pydantic.py</span>
+        </div>
+        <pre><span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel, Field
+<span class="kw">from</span> typing <span class="kw">import</span> List
+<span class="kw">from</span> openai <span class="kw">import</span> OpenAI
+
+client = <span class="cl">OpenAI</span>()
+
+<span class="cm"># 1. Define strict output schema</span>
+<span class="kw">class</span> <span class="cl">JobPosting</span>(BaseModel):
+    title: <span class="fn">str</span> = Field(description=<span class="st">"Job position title"</span>)
+    company: <span class="fn">str</span> = Field(description=<span class="st">"Company name"</span>)
+    required_skills: List[<span class="fn">str</span>] = Field(description=<span class="st">"List of mandatory technical skills"</span>)
+    years_experience: <span class="fn">int</span> = Field(description=<span class="st">"Minimum years of experience required"</span>)
+    is_remote: <span class="fn">bool</span>
+
+raw_text = <span class="st">"""
+Stripe is hiring a Senior Machine Learning Engineer with at least 5 years of experience 
+building PyTorch production pipelines, distributed training with Kubernetes, and 
+fine-tuning LLMs with LoRA. The role is 100% remote.
+"""</span>
+
+<span class="cm"># 2. Call model with response_format bound to the Pydantic class</span>
+completion = client.beta.chat.completions.<span class="fn">parse</span>(
+    model=<span class="st">"gpt-4o-2024-08-06"</span>,
+    messages=[
+        {<span class="st">"role"</span>: <span class="st">"system"</span>, <span class="st">"content"</span>: <span class="st">"Extract job posting details into strict JSON."</span>},
+        {<span class="st">"role"</span>: <span class="st">"user"</span>,   <span class="st">"content"</span>: raw_text}
+    ],
+    response_format=JobPosting
+)
+
+job: JobPosting = completion.choices[<span class="nu">0</span>].message.parsed
+<span class="fn">print</span>(<span class="st">f"Title: {job.title} | Company: {job.company} | Remote: {job.is_remote}"</span>)
+<span class="fn">print</span>(<span class="st">f"Skills: {', '.join(job.required_skills)}"</span>)</pre>
+      </div>
+
+      <h4>2. Autonomous Tool Calling (Function Calling) Execution Loop</h4>
+      <p>Tool calling allows an LLM to interact with APIs, databases, calculators, and search engines. The pattern operates in four stages:</p>
+      
+      <div class="pipeline">
+        <div class="pipe-step"><div class="pipe-box" style="border-color:#7c6ff7;color:#7c6ff7">User Prompt + Tool Schemas</div></div>
+        <div class="pipe-arrow"></div>
+        <div class="pipe-step"><div class="pipe-box">LLM emits <code>tool_calls</code> (JSON args)</div></div>
+        <div class="pipe-arrow"></div>
+        <div class="pipe-step"><div class="pipe-box">Python executes function locally</div></div>
+        <div class="pipe-arrow"></div>
+        <div class="pipe-step"><div class="pipe-box" style="border-color:#51cf66;color:#51cf66">LLM summarizes final response</div></div>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>tool_calling_engine.py</span>
+        </div>
+        <pre><span class="kw">import</span> json
+<span class="kw">from</span> openai <span class="kw">import</span> OpenAI
+
+client = <span class="cl">OpenAI</span>()
+
+<span class="cm"># 1. Define actual Python tool function</span>
+<span class="kw">def</span> <span class="fn">get_stock_price</span>(symbol: str) -> str:
+    prices = {<span class="st">"NVDA"</span>: <span class="nu">125.50</span>, <span class="st">"AAPL"</span>: <span class="nu">220.30</span>, <span class="st">"GOOGL"</span>: <span class="nu">175.20</span>}
+    <span class="kw">return</span> json.<span class="fn">dumps</span>({<span class="st">"symbol"</span>: symbol.upper(), <span class="st">"price"</span>: prices.get(symbol.upper(), <span class="st">"Not found"</span>)})
+
+<span class="cm"># 2. Define Tool Schema passed to LLM</span>
+tools = [{
+    <span class="st">"type"</span>: <span class="st">"function"</span>,
+    <span class="st">"function"</span>: {
+        <span class="st">"name"</span>: <span class="st">"get_stock_price"</span>,
+        <span class="st">"description"</span>: <span class="st">"Fetches real-time stock ticker price."</span>,
+        <span class="st">"parameters"</span>: {
+            <span class="st">"type"</span>: <span class="st">"object"</span>,
+            <span class="st">"properties"</span>: {<span class="st">"symbol"</span>: {<span class="st">"type"</span>: <span class="st">"string"</span>, <span class="st">"description"</span>: <span class="st">"Ticker symbol (e.g. NVDA)"</span>}},
+            <span class="st">"required"</span>: [<span class="st">"symbol"</span>]
+        }
+    }
+}]
+
+messages = [{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"What is the current stock price of NVDA and Apple?"</span>}]
+
+<span class="cm"># 3. Model decides to call tools</span>
+response = client.chat.completions.<span class="fn">create</span>(model=<span class="st">"gpt-4o"</span>, messages=messages, tools=tools)
+response_msg = response.choices[<span class="nu">0</span>].message
+
+<span class="kw">if</span> response_msg.tool_calls:
+    messages.<span class="fn">append</span>(response_msg)  <span class="cm"># Append assistant's tool-call request</span>
+    <span class="kw">for</span> tool_call <span class="kw">in</span> response_msg.tool_calls:
+        fn_args = json.<span class="fn">loads</span>(tool_call.function.arguments)
+        fn_result = <span class="fn">get_stock_price</span>(fn_args[<span class="st">"symbol"</span>])
+        
+        <span class="cm"># Append function result with role='tool'</span>
+        messages.<span class="fn">append</span>({
+            <span class="st">"role"</span>: <span class="st">"tool"</span>,
+            <span class="st">"tool_call_id"</span>: tool_call.id,
+            <span class="st">"content"</span>: fn_result
+        })
+        
+    <span class="cm"># 4. Final call: LLM generates coherent natural language response using tool data</span>
+    final_response = client.chat.completions.<span class="fn">create</span>(model=<span class="st">"gpt-4o"</span>, messages=messages)
+    <span class="fn">print</span>(final_response.choices[<span class="nu">0</span>].message.content)</pre>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 3: CONTEXT WINDOWS & HALLUCINATIONS ==================== -->
+    <div class="section" id="gen-limitations">
+      <h3>Context Windows, Hallucinations &amp; Model Limitations</h3>
+      <p>Deploying LLMs effectively requires engineering around their inherent architectural boundaries.</p>
+
+      <h4>1. The "Lost in the Middle" Phenomenon</h4>
+      <p>While modern models support context windows from 32k up to 1M+ tokens, empirical research (Liu et al., 2023) proves that retrieval performance is U-shaped: <strong>models remember facts placed at the extreme beginning or extreme end of the prompt</strong> with high fidelity, but accuracy degrades by up to 50% for information situated in the middle. Always place critical instructions and primary reference documents at the prompt boundaries.</p>
+
+      <h4>2. Root Causes of Hallucinations &amp; Mitigations</h4>
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="cc-icon">🎲</div>
+          <h4>Why Hallucinations Happen</h4>
+          <p>LLMs are statistical sequence continuators, not knowledge engines. They optimize for linguistic plausibility over factual truth. When facts are missing, they generate plausible-sounding falsehoods.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">🛡️</div>
+          <h4>Grounding via RAG</h4>
+          <p>Supply explicit source documents in context and instruct the model: <em>"Answer strictly using the provided documents. If not present, answer 'Insufficient Information'."</em></p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">🔍</div>
+          <h4>Chain-of-Verification (CoVe)</h4>
+          <p>Have the model generate baseline responses, draft verification questions regarding its own factual claims, execute verification, and output a corrected response.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">⚖️</div>
+          <h4>Self-Consistency Sampling</h4>
+          <p>Sample multiple completions with temperature \(\approx 0.7\). Select the answer agreed upon by majority consensus (effective for math, reasoning, and logic).</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 4: FINE-TUNING CONCEPTS & LORA ==================== -->
+    <div class="section" id="gen-fine-tuning">
+      <h3>Fine-Tuning Concepts, LoRA &amp; PEFT</h3>
+      <p>Full fine-tuning of an entire 7B–70B parameter model updates every weight matrix, which requires massive clusters of 80GB A100/H100 GPUs and risks <em>catastrophic forgetting</em> of general capabilities. <strong>Parameter-Efficient Fine-Tuning (PEFT)</strong> solves this.</p>
+
+      <h4>1. The Mathematics of LoRA (Low-Rank Adaptation)</h4>
+      <p>Hu et al. (2021) observed that weight changes \(\Delta \mathbf{W}\) during fine-tuning have an <strong>intrinsic rank \(r\)</strong> that is dramatically lower than the weight dimension \(d\). Instead of updating the original frozen matrix \(\mathbf{W}_0 \in \mathbb{R}^{d \times k}\), LoRA decomposes the update into the product of two small low-rank matrices \(\mathbf{B} \in \mathbb{R}^{d \times r}\) and \(\mathbf{A} \in \mathbb{R}^{r \times k}\) where \(r \ll \min(d, k)\) (typically \(r \in \{8, 16, 32, 64\}\)):</p>
+
+      <div class="formula">\mathbf{h} = \mathbf{W}_0 \mathbf{x} + \Delta \mathbf{W} \mathbf{x} = \mathbf{W}_0 \mathbf{x} + \frac{\alpha}{r} (\mathbf{B} \mathbf{A}) \mathbf{x}</div>
+
+      <div class="info-box tip">
+        <strong>The Efficiency Breakthrough of LoRA:</strong>
+        <ul>
+          <li><strong>Trainable Parameter Reduction:</strong> Reduces parameters to train by <strong>99%+</strong> (e.g. from 7 billion weights down to 15 million weights).</li>
+          <li><strong>Initialization:</strong> \(\mathbf{A}\) is initialized with Gaussian noise \(\mathcal{N}(0, \sigma^2)\) and \(\mathbf{B}\) is initialized to <strong>zeros</strong>. Thus, \(\Delta \mathbf{W} = 0\) at the start of training, preserving pre-trained performance!</li>
+          <li><strong>Zero Inference Latency:</strong> At deployment, \(\Delta \mathbf{W} = \frac{\alpha}{r} \mathbf{B}\mathbf{A}\) can be mathematically added directly into the base weights: \(\mathbf{W}_{\text{deployed}} = \mathbf{W}_0 + \Delta \mathbf{W}\). Zero added latency!</li>
+          <li><strong>QLoRA (Dettmers et al. 2023):</strong> Quantizes the frozen base model to <strong>4-bit NormalFloat (NF4)</strong> with double quantization, enabling fine-tuning a 7B LLM on a single 16GB consumer gaming GPU!</li>
+        </ul>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>lora_fine_tuning.py</span>
+        </div>
+        <pre><span class="cm"># pip install peft trl bitsandbytes accelerate</span>
+<span class="kw">from</span> peft <span class="kw">import</span> LoraConfig, get_peft_model, TaskType
+<span class="kw">from</span> transformers <span class="kw">import</span> AutoModelForCausalLM, AutoTokenizer
+<span class="kw">from</span> trl <span class="kw">import</span> SFTTrainer, SFTConfig
+
+model_id = <span class="st">"meta-llama/Llama-3.2-3B"</span>
+
+<span class="cm"># 1. Define LoRA Hyperparameters</span>
+peft_config = <span class="cl">LoraConfig</span>(
+    task_type=TaskType.CAUSAL_LM,
+    r=<span class="nu">16</span>,                          <span class="cm"># Rank dimension</span>
+    lora_alpha=<span class="nu">32</span>,                 <span class="cm"># Scaling factor (typically 2 * r)</span>
+    lora_dropout=<span class="nu">0.05</span>,
+    target_modules=[<span class="st">"q_proj"</span>, <span class="st">"v_proj"</span>, <span class="st">"k_proj"</span>, <span class="st">"o_proj"</span>]  <span class="cm"># Apply to attention weights</span>
+)
+
+<span class="cm"># 2. Load model in 4-bit (QLoRA)</span>
+model = AutoModelForCausalLM.<span class="fn">from_pretrained</span>(
+    model_id,
+    load_in_4bit=<span class="kw">True</span>,
+    device_map=<span class="st">"auto"</span>
+)
+
+<span class="cm"># 3. Wrap model with PEFT adapters</span>
+model = <span class="fn">get_peft_model</span>(model, peft_config)
+model.<span class="fn">print_trainable_parameters</span>()
+<span class="cm"># Output: trainable params: 14,155,776 || all params: 3,212,749,824 || trainable%: 0.44%</span></pre>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 5: QUANTIZATION & INFERENCE-COST TRADE-OFFS ==================== -->
+    <div class="section" id="gen-quant-budget">
+      <h3>Quantization &amp; Inference-Cost Trade-offs</h3>
+      <p>Running LLMs in production requires optimizing latency, throughput, and hardware costs. <strong>Quantization</strong> reduces the precision of model weights from 16-bit floating-point numbers down to 8-bit or 4-bit integers with minimal loss in model capability.</p>
+
+      <h4>1. The GPU Memory (VRAM) Sizing Equation</h4>
+      <p>To determine how much GPU VRAM is required to run a model, use the fundamental sizing equation:</p>
+      
+      <div class="formula">\text{VRAM (GB)} \approx \left(\text{Parameters (Billions)} \times \text{Bytes per Parameter}\right) \times 1.25 \quad + \quad \text{KV Cache VRAM}</div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Precision Format</th>
+              <th>Bytes / Param</th>
+              <th>7B Model VRAM</th>
+              <th>13B Model VRAM</th>
+              <th>70B Model VRAM</th>
+              <th>Recommended Hardware</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>FP16 / BF16</strong> (Native)</td>
+              <td>2.0 Bytes</td>
+              <td>~16–18 GB</td>
+              <td>~30–34 GB</td>
+              <td>~150–160 GB</td>
+              <td>NVIDIA A100 / H100 (80GB)</td>
+            </tr>
+            <tr>
+              <td><strong>INT8</strong> (8-bit)</td>
+              <td>1.0 Byte</td>
+              <td>~8–10 GB</td>
+              <td>~16–18 GB</td>
+              <td>~80 GB</td>
+              <td>RTX 3090 / 4090 (24GB)</td>
+            </tr>
+            <tr>
+              <td><strong>INT4</strong> (4-bit QLoRA/AWQ)</td>
+              <td>0.5 Bytes</td>
+              <td><strong>~4.5–5.5 GB</strong></td>
+              <td><strong>~8.5–9.5 GB</strong></td>
+              <td><strong>~40–45 GB</strong></td>
+              <td>Consumer GPUs, Apple Mac (M1/M2/M3)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>2. Modern Quantization Schemes Compared</h4>
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="cc-icon">⚡</div>
+          <h4>GGUF (llama.cpp)</h4>
+          <p>Binary format optimized for CPU, Apple Metal, and hybrid GPU inference. The engine behind <strong>Ollama</strong> and <strong>LM Studio</strong>. Extremely fast on MacBooks.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">🎯</div>
+          <h4>AWQ (Activation-aware)</h4>
+          <p>Protects the top 1% most salient weights (based on activation magnitudes) from aggressive quantization. Superb perplexity retention; standard in <strong>vLLM</strong>.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">🏎️</div>
+          <h4>GPTQ (One-Shot Matrix Inversion)</h4>
+          <p>Uses second-order Taylor expansion approximations to calibrate quantized matrices layer by layer. Excellent for high-throughput GPU serving.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">🚀</div>
+          <h4>vLLM &amp; PagedAttention</h4>
+          <p>High-throughput production LLM serving engine. Eliminates VRAM fragmentation in the Key-Value (KV) cache, increasing server throughput by 2x–4x.</p>
+        </div>
+      </div>
+    </div>
+  </div>

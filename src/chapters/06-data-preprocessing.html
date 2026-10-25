@@ -1,0 +1,329 @@
+<!-- ============================== CHAPTER 4: DATA PREPROCESSING ============================== -->
+  <div class="chapter ch4" id="ch4">
+    <div class="chapter-header">
+      <div class="chapter-num">04</div>
+      <div>
+        <h2>Data Preprocessing &amp; Feature Engineering</h2>
+        <div class="chapter-sub">Cleaning, encoding, scaling â€” the unsung hero of ML (80% of the work!)</div>
+      </div>
+    </div>
+
+    <div class="info-box warn">
+      <strong>âš ï¸ The 80/20 Rule of ML</strong>
+      In real-world ML projects, 80% of your time goes into data collection, cleaning, and preprocessing. Only 20% is model training. Bad data = bad model, no matter how fancy your algorithm is. "Garbage in, garbage out."
+    </div>
+
+    <div class="section" id="pre-clean">
+      <h3>Cleaning Data</h3>
+      <p>Real-world data is messy â€” missing values, duplicates, wrong formats. You must clean it before training any model.</p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>data_cleaning.py</span>
+        </div>
+        <pre><span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># Load a dataset</span>
+df = pd.<span class="fn">read_csv</span>(<span class="st">"students.csv"</span>)
+
+<span class="cm"># --- Step 1: Check for missing values ---</span>
+<span class="fn">print</span>(df.<span class="fn">isnull</span>().<span class="fn">sum</span>())   <span class="cm"># count missing per column</span>
+<span class="fn">print</span>(df.<span class="fn">isnull</span>().<span class="fn">sum</span>() / <span class="fn">len</span>(df) * <span class="nu">100</span>)   <span class="cm"># % missing</span>
+
+<span class="cm"># Strategy 1: Drop rows with missing values</span>
+df_clean = df.<span class="fn">dropna</span>()
+
+<span class="cm"># Strategy 2: Fill with mean/median/mode</span>
+df[<span class="st">"age"</span>].<span class="fn">fillna</span>(df[<span class="st">"age"</span>].<span class="fn">median</span>(), inplace=<span class="kw">True</span>)  <span class="cm"># numeric</span>
+df[<span class="st">"city"</span>].<span class="fn">fillna</span>(df[<span class="st">"city"</span>].<span class="fn">mode</span>()[<span class="nu">0</span>], inplace=<span class="kw">True</span>) <span class="cm"># categorical</span>
+
+<span class="cm"># --- Step 2: Remove duplicates ---</span>
+<span class="fn">print</span>(<span class="st">f"Duplicates: {df.duplicated().sum()}"</span>)
+df = df.<span class="fn">drop_duplicates</span>()
+
+<span class="cm"># --- Step 3: Fix data types ---</span>
+df[<span class="st">"age"</span>] = df[<span class="st">"age"</span>].<span class="fn">astype</span>(<span class="st">"int"</span>)
+df[<span class="st">"date"</span>] = pd.<span class="fn">to_datetime</span>(df[<span class="st">"date"</span>])
+
+<span class="cm"># --- Step 4: Remove outliers (optional) ---</span>
+Q1 = df[<span class="st">"score"</span>].<span class="fn">quantile</span>(<span class="nu">0.25</span>)
+Q3 = df[<span class="st">"score"</span>].<span class="fn">quantile</span>(<span class="nu">0.75</span>)
+IQR = Q3 - Q1
+df = df[(df[<span class="st">"score"</span>] >= Q1 - <span class="nu">1.5</span>*IQR) & (df[<span class="st">"score"</span>] <= Q3 + <span class="nu">1.5</span>*IQR)]</pre>
+      </div>
+    </div>
+
+    <div class="section" id="pre-encode">
+      <h3>Encoding Categorical Data</h3>
+      <p>ML models only understand numbers. Text categories like "Red", "Green", "Blue" must be converted to numbers.</p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>encoding.py</span>
+        </div>
+        <pre><span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> <span class="cl">LabelEncoder</span>, <span class="cl">OneHotEncoder</span>
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+<span class="cm"># --- Label Encoding ---</span>
+<span class="cm"># Converts categories to numbers: cat=0, dog=1, bird=2</span>
+<span class="cm"># Use for ORDINAL data (has a natural order like low/medium/high)</span>
+le = <span class="cl">LabelEncoder</span>()
+df[<span class="st">"size_encoded"</span>] = le.<span class="fn">fit_transform</span>(df[<span class="st">"size"</span>])
+<span class="cm"># small=2, medium=1, large=0  (alphabetical order)</span>
+
+<span class="cm"># --- One-Hot Encoding ---</span>
+<span class="cm"># Creates a new binary column for each category</span>
+<span class="cm"># Use for NOMINAL data (no natural order like colors, cities)</span>
+df_encoded = pd.<span class="fn">get_dummies</span>(df, columns=[<span class="st">"color"</span>], drop_first=<span class="kw">True</span>)
+<span class="cm"># color_green=0/1, color_red=0/1 (drops first to avoid multicollinearity)</span>
+
+<span class="cm"># Example:</span>
+<span class="cm"># Original:  color = [red, blue, green, red]</span>
+<span class="cm"># Encoded:   color_green = [0, 0, 1, 0]</span>
+<span class="cm">#            color_red   = [1, 0, 0, 1]</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="pre-scale">
+      <h3>Feature Scaling</h3>
+      <p>Features with different scales (e.g., age: 0-100, salary: 20000-200000) can confuse many ML algorithms. Scaling puts them on the same range.</p>
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="cc-icon">ðŸ“</div>
+          <h4>StandardScaler</h4>
+          <p>Transforms to mean=0, std=1. Best for algorithms that assume normal distribution (SVM, Logistic Regression, Neural Networks).</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">ðŸ“</div>
+          <h4>MinMaxScaler</h4>
+          <p>Scales to 0-1 range. Best for neural networks and algorithms sensitive to magnitude. Preserves the shape of the distribution.</p>
+        </div>
+      </div>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>scaling.py</span>
+        </div>
+        <pre><span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> <span class="cl">StandardScaler</span>, <span class="cl">MinMaxScaler</span>
+
+<span class="cm"># StandardScaler: mean=0, std=1</span>
+scaler = <span class="cl">StandardScaler</span>()
+X_scaled = scaler.<span class="fn">fit_transform</span>(X_train)  <span class="cm"># fit on TRAIN only!</span>
+X_test_scaled = scaler.<span class="fn">transform</span>(X_test)  <span class="cm"># transform test using same params</span>
+
+<span class="cm"># MinMaxScaler: scale to 0-1</span>
+scaler = <span class="cl">MinMaxScaler</span>()
+X_scaled = scaler.<span class="fn">fit_transform</span>(X_train)</pre>
+      </div>
+      <div class="info-box warn">
+        <strong>âš ï¸ Critical Rule</strong>
+        Always fit the scaler on <strong>training data only</strong>, then transform both train and test. If you fit on the entire dataset, you're leaking test data information â†’ your model evaluation will be wrong (data leakage).
+      </div>
+    </div>
+
+    <div class="section" id="pre-split">
+      <h3>Train/Test Split</h3>
+      <p>You must split your data into training (for learning) and testing (for evaluating). The model never sees test data during training.</p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>train_test.py</span>
+        </div>
+        <pre><span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+
+<span class="cm"># X = features (input), y = target (what we predict)</span>
+X = df[[<span class="st">"age"</span>, <span class="st">"income"</span>, <span class="st">"hours_studied"</span>]]
+y = df[<span class="st">"passed_exam"</span>]
+
+<span class="cm"># 80% training, 20% testing</span>
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=<span class="nu">0.2</span>, random_state=<span class="nu">42</span>
+)
+<span class="cm"># random_state=42 ensures same split every time (reproducibility)</span>
+
+<span class="fn">print</span>(<span class="st">f"Train: {X_train.shape}, Test: {X_test.shape}"</span>)</pre>
+      </div>
+    </div>
+
+    <div class="section" id="pre-feat">
+      <h3>Feature Engineering</h3>
+      <p>Feature engineering = creating new features from existing data to help the model learn better. This is where domain knowledge shines.</p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>feature_engineering.py</span>
+        </div>
+        <pre><span class="cm"># Example: creating useful features from raw data</span>
+
+<span class="cm"># From date â†’ extract useful parts</span>
+df[<span class="st">"year"</span>] = df[<span class="st">"date"</span>].dt.year
+df[<span class="st">"month"</span>] = df[<span class="st">"date"</span>].dt.month
+df[<span class="st">"day_of_week"</span>] = df[<span class="st">"date"</span>].dt.dayofweek  <span class="cm"># 0=Monday</span>
+df[<span class="st">"is_weekend"</span>] = df[<span class="st">"day_of_week"</span>] >= <span class="nu">5</span>
+
+<span class="cm"># Combine features</span>
+df[<span class="st">"bmi"</span>] = df[<span class="st">"weight"</span>] / (df[<span class="st">"height"</span>] / <span class="nu">100</span>) ** <span class="nu">2</span>
+
+<span class="cm"># Binning â€” convert continuous to categories</span>
+df[<span class="st">"age_group"</span>] = pd.<span class="fn">cut</span>(df[<span class="st">"age"</span>], bins=[<span class="nu">0</span>,<span class="nu">18</span>,<span class="nu">35</span>,<span class="nu">60</span>,<span class="nu">100</span>],
+                          labels=[<span class="st">"child"</span>,<span class="st">"young"</span>,<span class="st">"adult"</span>,<span class="st">"senior"</span>])
+
+<span class="cm"># Text features</span>
+df[<span class="st">"name_length"</span>] = df[<span class="st">"name"</span>].<span class="fn">str.len</span>()
+df[<span class="st">"word_count"</span>] = df[<span class="st">"review"</span>].<span class="fn">str.split</span>().<span class="fn">str.len</span>()</pre>
+      </div>
+    </div>
+
+    <div class="section" id="pre-imbalance">
+      <h3>Handling Imbalanced Data (Advanced)</h3>
+      <p>If you're building a fraud detector, 99% of transactions are legitimate and 1% are fraud. A model that always predicts "legitimate" will be 99% accurate, but completely useless! This is an imbalanced dataset.</p>
+      
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="cc-icon">âš–ï¸</div>
+          <h4>Class Weights</h4>
+          <p>Tell the algorithm to penalize mistakes on the minority class more heavily (e.g., <code>class_weight="balanced"</code> in sklearn).</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">ðŸ“‰</div>
+          <h4>Undersampling</h4>
+          <p>Reduce the majority class. If you have 100 fraud cases and 10,000 normal cases, randomly pick 100 normal cases so the data is 50/50.</p>
+        </div>
+        <div class="concept-card">
+          <div class="cc-icon">ðŸ“ˆ</div>
+          <h4>Oversampling (SMOTE)</h4>
+          <p>Generate synthetic examples of the minority class using KNN. Creates new, realistic fraud data points to balance the scale.</p>
+        </div>
+      </div>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>imbalanced_data.py</span>
+        </div>
+        <pre><span class="cm"># pip install imbalanced-learn</span>
+<span class="kw">from</span> imblearn.over_sampling <span class="kw">import</span> <span class="cl">SMOTE</span>
+
+<span class="cm"># Assume X_train has 9900 normal and 100 fraud</span>
+<span class="cm"># Apply SMOTE to balance the dataset</span>
+smote = <span class="cl">SMOTE</span>(random_state=<span class="nu">42</span>)
+X_train_smote, y_train_smote = smote.<span class="fn">fit_resample</span>(X_train, y_train)
+
+<span class="cm"># Now both classes have 9900 samples!</span></pre>
+      </div>
+    </div>
+
+
+    <div class="section" id="pre-leakage">
+      <h3>Data Leakage — The Silent Model Killer</h3>
+      <p>Data leakage happens when information from <em>outside</em> the training set inappropriately influences your model, making it appear better than it actually is. It's one of the most common and dangerous mistakes in ML.</p>
+      <div class="concept-grid">
+        <div class="concept-card"><div class="cc-icon">🚰</div><h4>Target Leakage</h4><p>A feature that is directly derived from or caused by the target variable. E.g., using "claim_paid" as a feature to predict "will_file_claim". In production this feature won't exist at prediction time.</p></div>
+        <div class="concept-card"><div class="cc-icon">📊</div><h4>Train/Test Contamination</h4><p>Fitting a scaler or imputer on the FULL dataset (including test set) before splitting. The test data "leaked" into training statistics. Always fit transformers ONLY on training data.</p></div>
+        <div class="concept-card"><div class="cc-icon">⏰</div><h4>Temporal Leakage</h4><p>Using future data to predict the past in time-series. If predicting sales for Monday, don't use Tuesday's data. Always split time series chronologically, never randomly.</p></div>
+        <div class="concept-card"><div class="cc-icon">🔗</div><h4>Group Leakage</h4><p>Same entity (patient, user, store) appears in both train and test sets. The model memorizes that entity instead of learning general patterns. Use GroupKFold.</p></div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div><span>data leakage — wrong vs right</span></div>
+        <pre><span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> <span class="cl">StandardScaler</span>
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">from</span> sklearn.pipeline <span class="kw">import</span> <span class="cl">Pipeline</span>
+
+<span class="cm"># ❌ WRONG: Fit scaler on ALL data (leaks test info into training)</span>
+scaler = <span class="cl">StandardScaler</span>()
+X_scaled = scaler.<span class="fn">fit_transform</span>(X)          <span class="cm"># Uses test data stats!</span>
+X_train, X_test = <span class="fn">train_test_split</span>(X_scaled)
+
+<span class="cm"># ✅ CORRECT: Split FIRST, then fit ONLY on train</span>
+X_train, X_test, y_train, y_test = <span class="fn">train_test_split</span>(X, y, test_size=<span class="nu">0.2</span>)
+scaler = <span class="cl">StandardScaler</span>()
+X_train = scaler.<span class="fn">fit_transform</span>(X_train)  <span class="cm"># Fit on train only</span>
+X_test  = scaler.<span class="fn">transform</span>(X_test)       <span class="cm"># Transform test using train stats</span>
+
+<span class="cm"># ✅ BEST: Use Pipelines — they prevent leakage automatically</span>
+pipeline = <span class="cl">Pipeline</span>([
+    (<span class="st">'scaler'</span>, <span class="cl">StandardScaler</span>()),
+    (<span class="st">'model'</span>, <span class="cl">LogisticRegression</span>())
+])
+<span class="cm"># Pipeline ensures: fit scaler only on train fold during cross-validation</span>
+pipeline.<span class="fn">fit</span>(X_train, y_train)
+
+<span class="cm"># ✅ Time series split (no random shuffling!)</span>
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> <span class="cl">TimeSeriesSplit</span>
+tscv = <span class="cl">TimeSeriesSplit</span>(n_splits=<span class="nu">5</span>)
+<span class="kw">for</span> train_idx, val_idx <span class="kw">in</span> tscv.<span class="fn">split</span>(X):
+    <span class="cm"># Each fold: train on past, validate on future</span>
+    X_tr, X_val = X[train_idx], X[val_idx]</pre>
+      </div>
+      <div class="info-box warn"><strong>⚠️ Red Flags for Leakage</strong>
+        Model accuracy seems suspiciously perfect (98%+ on a hard problem). Feature that wasn't available at prediction time. Accuracy drops dramatically in production. Model performance is much worse on new data than test set.
+      </div>
+    </div>
+
+    <div class="section" id="proj-ch4">
+      <h3>Practical Project: Complete Preprocessing Pipeline</h3>
+      <p>Build a robust data cleaning pipeline that handles missing values, encodes categories, and scales numerical features simultaneously.</p>
+      
+      <div class="steps">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Define Transformers</h4>
+            <p>Set up imputation and scaling for numerical data, and one-hot encoding for categorical data.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>ColumnTransformer</h4>
+            <p>Combine them into a single scikit-learn <code>ColumnTransformer</code>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+          <span>project_preprocessing.py</span>
+        </div>
+        <pre><span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">from</span> sklearn.pipeline <span class="kw">import</span> <span class="cl">Pipeline</span>
+<span class="kw">from</span> sklearn.impute <span class="kw">import</span> <span class="cl">SimpleImputer</span>
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> <span class="cl">StandardScaler</span>, <span class="cl">OneHotEncoder</span>
+<span class="kw">from</span> sklearn.compose <span class="kw">import</span> <span class="cl">ColumnTransformer</span>
+
+<span class="cm"># Dummy Dataset</span>
+df = pd.<span class="cl">DataFrame</span>({
+    <span class="st">'age'</span>: [<span class="nu">25</span>, <span class="nu">30</span>, <span class="kw">None</span>, <span class="nu">22</span>, <span class="nu">35</span>],
+    <span class="st">'income'</span>: [<span class="nu">50000</span>, <span class="kw">None</span>, <span class="nu">80000</span>, <span class="nu">45000</span>, <span class="nu">90000</span>],
+    <span class="st">'city'</span>: [<span class="st">'NY'</span>, <span class="st">'LA'</span>, <span class="st">'NY'</span>, <span class="st">'Chicago'</span>, <span class="kw">None</span>]
+})
+
+<span class="cm"># 1. Pipelines for each data type</span>
+num_pipeline = <span class="cl">Pipeline</span>([
+    (<span class="st">'imputer'</span>, <span class="cl">SimpleImputer</span>(strategy=<span class="st">'median'</span>)),
+    (<span class="st">'scaler'</span>, <span class="cl">StandardScaler</span>())
+])
+
+cat_pipeline = <span class="cl">Pipeline</span>([
+    (<span class="st">'imputer'</span>, <span class="cl">SimpleImputer</span>(strategy=<span class="st">'most_frequent'</span>)),
+    (<span class="st">'onehot'</span>, <span class="cl">OneHotEncoder</span>(handle_unknown=<span class="st">'ignore'</span>))
+])
+
+<span class="cm"># 2. Combine into a ColumnTransformer</span>
+num_cols = [<span class="st">'age'</span>, <span class="st">'income'</span>]
+cat_cols = [<span class="st">'city'</span>]
+
+preprocessor = <span class="cl">ColumnTransformer</span>(
+    transformers=[
+        (<span class="st">'num'</span>, num_pipeline, num_cols),
+        (<span class="st">'cat'</span>, cat_pipeline, cat_cols)
+    ])
+
+<span class="cm"># Fit and transform the data in one go!</span>
+X_processed = preprocessor.<span class="fn">fit_transform</span>(df)
+<span class="fn">print</span>(X_processed)</pre>
+      </div>
+    </div>
+  </div>
+

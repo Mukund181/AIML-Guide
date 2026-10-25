@@ -1,0 +1,229 @@
+<!-- ============================== MATH FOR ML ============================== -->
+  <div class="chapter ch10" id="ch-math" style="--ch-accent:#fcc419;">
+    <div class="chapter-header">
+      <div class="chapter-num" style="background:rgba(252,196,25,0.15);color:#fcc419;">MTH</div>
+      <div>
+        <h2 style="color:#fcc419;">Mathematics for Machine Learning</h2>
+        <div class="chapter-sub">Vectors, Matrices, Statistics, Probability, Calculus &amp; Gradient Descent</div>
+      </div>
+    </div>
+
+    <div class="section" id="math-linear">
+      <h3>Vectors &amp; Matrices</h3>
+      <p>Every dataset, neural network weight, and word embedding is ultimately just numbers arranged in arrays. Vectors and matrices are the language of ML.</p>
+      <div class="concept-grid">
+        <div class="concept-card"><div class="cc-icon">➡️</div><h4>Vector</h4><p>A 1D array of numbers. A single data point with 3 features (age, salary, experience) is a vector: [25, 60000, 2]. Length = number of features = dimensionality.</p></div>
+        <div class="concept-card"><div class="cc-icon">🔢</div><h4>Matrix</h4><p>A 2D array of numbers. Your whole dataset is a matrix of shape (n_samples × n_features). Each row = one data point, each column = one feature.</p></div>
+        <div class="concept-card"><div class="cc-icon">📐</div><h4>Dot Product</h4><p>The core operation of ML: sum of element-wise products. In linear regression: prediction = w · x (weights dot features). Measures alignment/similarity.</p></div>
+        <div class="concept-card"><div class="cc-icon">🔄</div><h4>Matrix Multiply</h4><p>Each element (i,j) of the result = dot product of row i with column j. Powers every neural network forward pass. Rule: (m×k) × (k×n) → (m×n).</p></div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div><span>numpy — vectors and matrices</span></div>
+        <pre><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># Vectors</span>
+v1 = np.<span class="fn">array</span>([<span class="nu">1</span>, <span class="nu">2</span>, <span class="nu">3</span>])
+v2 = np.<span class="fn">array</span>([<span class="nu">4</span>, <span class="nu">5</span>, <span class="nu">6</span>])
+
+dot = np.<span class="fn">dot</span>(v1, v2)            <span class="cm"># 1*4 + 2*5 + 3*6 = 32</span>
+magnitude = np.<span class="fn">linalg.norm</span>(v1)  <span class="cm"># sqrt(1^2+2^2+3^2) = 3.74</span>
+
+<span class="cm"># Cosine similarity (used in NLP embeddings)</span>
+cos_sim = np.<span class="fn">dot</span>(v1, v2) / (np.<span class="fn">linalg.norm</span>(v1) * np.<span class="fn">linalg.norm</span>(v2))
+<span class="fn">print</span>(<span class="st">f"Cosine similarity: {cos_sim:.4f}"</span>)  <span class="cm"># 0.9746</span>
+
+<span class="cm"># Matrices</span>
+A = np.<span class="fn">array</span>([[<span class="nu">1</span>, <span class="nu">2</span>], [<span class="nu">3</span>, <span class="nu">4</span>]])
+B = np.<span class="fn">array</span>([[<span class="nu">5</span>, <span class="nu">6</span>], [<span class="nu">7</span>, <span class="nu">8</span>]])
+
+C = np.<span class="fn">dot</span>(A, B)         <span class="cm"># Matrix multiplication</span>
+<span class="cm"># [[1*5+2*7, 1*6+2*8], [3*5+4*7, 3*6+4*8]] = [[19,22],[43,50]]</span>
+
+<span class="fn">print</span>(A.T)               <span class="cm"># Transpose: flip rows &lt;-&gt; columns</span>
+<span class="fn">print</span>(np.<span class="fn">linalg.inv</span>(A))  <span class="cm"># Inverse: A * A^-1 = Identity</span>
+
+<span class="cm"># Broadcast: operations on mismatched shapes (NumPy auto-expands)</span>
+X = np.<span class="fn">random.randn</span>(<span class="nu">100</span>, <span class="nu">5</span>)  <span class="cm"># 100 samples, 5 features</span>
+w = np.<span class="fn">array</span>([<span class="nu">0.1</span>, <span class="nu">0.2</span>, <span class="nu">-0.3</span>, <span class="nu">0.5</span>, <span class="nu">0.8</span>])  <span class="cm"># weights</span>
+predictions = X @ w              <span class="cm"># @ = matrix multiply, shape (100,)</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="math-stats">
+      <h3>Statistics &amp; Probability</h3>
+      <p>Statistics helps you understand your data. Probability underpins every ML model — classifiers output probabilities, loss functions are based on probability theory.</p>
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div><span>statistics essentials</span></div>
+        <pre><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+data = np.<span class="fn">array</span>([<span class="nu">2</span>, <span class="nu">4</span>, <span class="nu">4</span>, <span class="nu">4</span>, <span class="nu">5</span>, <span class="nu">5</span>, <span class="nu">7</span>, <span class="nu">9</span>])
+
+<span class="cm"># Central tendency</span>
+mean   = np.<span class="fn">mean</span>(data)    <span class="cm"># 5.0  — average, sensitive to outliers</span>
+median = np.<span class="fn">median</span>(data)  <span class="cm"># 4.5  — middle value, robust to outliers</span>
+
+<span class="cm"># Spread / dispersion</span>
+variance = np.<span class="fn">var</span>(data)   <span class="cm"># 4.0  — avg squared deviation from mean</span>
+std_dev  = np.<span class="fn">std</span>(data)   <span class="cm"># 2.0  — sqrt(variance), same units as data</span>
+
+<span class="cm"># Correlation: -1 (perfect inverse) to +1 (perfect direct)</span>
+x = np.<span class="fn">array</span>([<span class="nu">1</span>, <span class="nu">2</span>, <span class="nu">3</span>, <span class="nu">4</span>, <span class="nu">5</span>])
+y = np.<span class="fn">array</span>([<span class="nu">2</span>, <span class="nu">4</span>, <span class="nu">5</span>, <span class="nu">4</span>, <span class="nu">5</span>])
+corr = np.<span class="fn">corrcoef</span>(x, y)[<span class="nu">0</span>, <span class="nu">1</span>]  <span class="cm"># 0.87 — strong positive correlation</span>
+
+<span class="cm"># Probability distributions</span>
+<span class="kw">from</span> scipy <span class="kw">import</span> stats
+
+normal    = stats.<span class="fn">norm</span>(loc=<span class="nu">0</span>, scale=<span class="nu">1</span>)   <span class="cm"># Standard normal (mean=0, std=1)</span>
+bernoulli = stats.<span class="fn">bernoulli</span>(p=<span class="nu">0.3</span>)       <span class="cm"># Coin flip with P(heads)=0.3</span>
+
+<span class="fn">print</span>(normal.<span class="fn">pdf</span>(<span class="nu">0</span>))    <span class="cm"># 0.3989 — probability density at x=0</span>
+<span class="fn">print</span>(normal.<span class="fn">cdf</span>(<span class="nu">1.96</span>)) <span class="cm"># 0.9750 — P(X &lt;= 1.96)</span></pre>
+      </div>
+      <table>
+        <tr><th>Concept</th><th>Formula</th><th>ML Relevance</th></tr>
+        <tr><td><strong>Mean (μ)</strong></td><td>Σx / n</td><td>Baseline prediction, centering data</td></tr>
+        <tr><td><strong>Variance (σ²)</strong></td><td>Σ(x−μ)² / n</td><td>Measures data spread, feature scaling</td></tr>
+        <tr><td><strong>Std Dev (σ)</strong></td><td>√variance</td><td>StandardScaler normalizes using this</td></tr>
+        <tr><td><strong>Normal Distribution</strong></td><td>Bell curve</td><td>Residuals assumption, weight init</td></tr>
+        <tr><td><strong>Correlation</strong></td><td>Cov(X,Y)/(σₓσᵧ)</td><td>Feature selection, understanding data</td></tr>
+      </table>
+    </div>
+
+    <div class="section" id="math-bayes">
+      <h3>Conditional Probability &amp; Bayes' Theorem</h3>
+      <p>Bayes' theorem is the mathematical foundation for many ML models including Naive Bayes classifiers, Bayesian optimization, and probabilistic reasoning.</p>
+      <div class="formula">P(A|B) = P(B|A) × P(A) / P(B)</div>
+      <div class="concept-grid">
+        <div class="concept-card"><div class="cc-icon">📊</div><h4>P(A|B) — Posterior</h4><p>Probability of A given that B occurred. What we want to find. E.g., P(spam | email contains "free money")</p></div>
+        <div class="concept-card"><div class="cc-icon">🔍</div><h4>P(B|A) — Likelihood</h4><p>How likely is B if A is true? P("free money" in email | email is spam). Estimated from training data.</p></div>
+        <div class="concept-card"><div class="cc-icon">📌</div><h4>P(A) — Prior</h4><p>Initial belief before seeing evidence. P(email is spam) = 20% of all emails are spam. Based on base rates.</p></div>
+        <div class="concept-card"><div class="cc-icon">📐</div><h4>P(B) — Evidence</h4><p>Total probability of observing B. Normalizing constant. Often computed as Σ P(B|Aᵢ)P(Aᵢ) over all classes.</p></div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div><span>Bayes' theorem — medical test example</span></div>
+        <pre><span class="cm"># Medical test example:</span>
+<span class="cm"># Disease prevalence (prior): 1% of population</span>
+<span class="cm"># Test sensitivity: 99% (correctly detects disease)</span>
+<span class="cm"># Test specificity: 95% (correctly flags healthy as healthy)</span>
+
+p_disease  = <span class="nu">0.01</span>   <span class="cm"># Prior: P(Disease)</span>
+p_no_dis   = <span class="nu">0.99</span>   <span class="cm"># P(No Disease)</span>
+p_pos_dis  = <span class="nu">0.99</span>   <span class="cm"># Sensitivity: P(Positive | Disease)</span>
+p_pos_nodis= <span class="nu">0.05</span>   <span class="cm"># False positive rate: P(Positive | No Disease)</span>
+
+<span class="cm"># Total P(Positive) = law of total probability</span>
+p_positive = (p_pos_dis * p_disease) + (p_pos_nodis * p_no_dis)
+<span class="cm"># = 0.99*0.01 + 0.05*0.99 = 0.0099 + 0.0495 = 0.0594</span>
+
+<span class="cm"># Bayes: P(Disease | Positive test)</span>
+p_disease_given_pos = (p_pos_dis * p_disease) / p_positive
+<span class="fn">print</span>(<span class="st">f"P(Disease | Positive test): {p_disease_given_pos:.1%}"</span>)
+<span class="cm"># Only 16.7%! Counterintuitive — because disease is rare (base rate matters!)</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="math-calculus">
+      <h3>Derivatives &amp; Gradients</h3>
+      <p>A derivative measures how much a function's output changes when you change its input. Gradients are derivatives for multi-variable functions. These are how ML models <em>learn</em>.</p>
+      <div class="concept-grid">
+        <div class="concept-card"><div class="cc-icon">📉</div><h4>Derivative</h4><p>Rate of change. f'(x) = slope of the curve at point x. If f(x) = x², then f'(x) = 2x. At x=3, slope = 6.</p></div>
+        <div class="concept-card"><div class="cc-icon">🏔️</div><h4>Gradient</h4><p>Vector of partial derivatives. ∇f(w₁, w₂) = [∂f/∂w₁, ∂f/∂w₂]. Points in the direction of steepest increase.</p></div>
+        <div class="concept-card"><div class="cc-icon">⛓️</div><h4>Chain Rule</h4><p>If f(g(x)), then df/dx = (df/dg)(dg/dx). Fundamental for backpropagation — how gradients flow through neural network layers.</p></div>
+        <div class="concept-card"><div class="cc-icon">🔁</div><h4>Partial Derivative</h4><p>Derivative with respect to ONE variable, treating others as constants. ∂/∂w₁ means "how much does output change if I nudge only w₁?"</p></div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div><span>computing gradients</span></div>
+        <pre><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># Manual gradient: MSE Loss for linear regression</span>
+<span class="cm"># Loss = (1/n) * Σ(y_pred - y_true)^2</span>
+<span class="cm"># d(Loss)/d(w) = (2/n) * X^T * (X*w - y)</span>
+
+<span class="kw">def</span> <span class="fn">compute_gradients</span>(X, y, w):
+    n = <span class="fn">len</span>(y)
+    y_pred = X @ w                        <span class="cm"># Forward pass</span>
+    error  = y_pred - y                   <span class="cm"># Residuals</span>
+    grad_w = (<span class="nu">2</span>/n) * X.T @ error         <span class="cm"># Gradient of loss w.r.t. weights</span>
+    loss   = np.<span class="fn">mean</span>(error**<span class="nu">2</span>)           <span class="cm"># MSE loss</span>
+    <span class="kw">return</span> grad_w, loss
+
+<span class="cm"># Example</span>
+X = np.<span class="fn">array</span>([[<span class="nu">1</span>, <span class="nu">2</span>], [<span class="nu">1</span>, <span class="nu">3</span>], [<span class="nu">1</span>, <span class="nu">4</span>]])  <span class="cm"># 3 samples, 2 features</span>
+y = np.<span class="fn">array</span>([<span class="nu">5</span>, <span class="nu">7</span>, <span class="nu">9</span>])
+w = np.<span class="fn">zeros</span>(<span class="nu">2</span>)                          <span class="cm"># Start with zero weights</span>
+
+grad, loss = <span class="fn">compute_gradients</span>(X, y, w)
+<span class="fn">print</span>(<span class="st">f"Loss: {loss:.2f}, Gradient: {grad}"</span>)
+<span class="cm"># Gradient tells us: increase w[0] and w[1] to reduce loss</span></pre>
+      </div>
+    </div>
+
+    <div class="section" id="math-gradient">
+      <h3>Gradient Descent — How Models Learn</h3>
+      <p>Gradient descent is the optimization algorithm used to train virtually every ML model. The idea: move the model's parameters in the direction that reduces the loss function.</p>
+      <div class="formula">w = w - α × ∇L(w)   &nbsp;&nbsp; (α = learning rate)</div>
+      <div class="steps">
+        <div class="step-item"><div class="step-num">1</div><div class="step-content"><h4>Initialize weights randomly</h4><p>Start with random (or zero) weights. The model knows nothing yet.</p></div></div>
+        <div class="step-item"><div class="step-num">2</div><div class="step-content"><h4>Forward pass — make predictions</h4><p>Run the current weights through the model. Compute the loss (how wrong you are).</p></div></div>
+        <div class="step-item"><div class="step-num">3</div><div class="step-content"><h4>Backward pass — compute gradients</h4><p>Calculate the gradient of the loss with respect to every weight. "Which direction makes the loss increase?"</p></div></div>
+        <div class="step-item"><div class="step-num">4</div><div class="step-content"><h4>Update weights</h4><p>Move weights opposite to gradient (downhill). Step size controlled by learning rate α.</p></div></div>
+        <div class="step-item"><div class="step-num">5</div><div class="step-content"><h4>Repeat until convergence</h4><p>After many iterations (epochs), the loss stops decreasing. The model has learned.</p></div></div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><div class="code-dots"><span class="r"></span><span class="y"></span><span class="g"></span></div><span>gradient descent from scratch</span></div>
+        <pre><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># Gradient Descent for Linear Regression (from scratch!)</span>
+<span class="kw">class</span> <span class="cl">LinearRegressionGD</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, lr=<span class="nu">0.01</span>, epochs=<span class="nu">1000</span>):
+        self.lr, self.epochs = lr, epochs
+        self.losses = []
+
+    <span class="kw">def</span> <span class="fn">fit</span>(self, X, y):
+        n, d = X.shape
+        self.w = np.<span class="fn">zeros</span>(d)  <span class="cm"># Initialize weights to 0</span>
+        self.b = <span class="nu">0</span>            <span class="cm"># Bias term</span>
+
+        <span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(self.epochs):
+            <span class="cm"># Forward pass</span>
+            y_pred = X @ self.w + self.b
+            error  = y_pred - y
+
+            <span class="cm"># Gradients</span>
+            dw = (<span class="nu">2</span>/n) * X.T @ error
+            db = (<span class="nu">2</span>/n) * error.<span class="fn">sum</span>()
+
+            <span class="cm"># Update weights (step downhill!)</span>
+            self.w -= self.lr * dw
+            self.b -= self.lr * db
+
+            <span class="cm"># Track loss</span>
+            loss = np.<span class="fn">mean</span>(error**<span class="nu">2</span>)
+            self.losses.<span class="fn">append</span>(loss)
+
+    <span class="kw">def</span> <span class="fn">predict</span>(self, X):
+        <span class="kw">return</span> X @ self.w + self.b
+
+<span class="cm"># Train it!</span>
+np.random.<span class="fn">seed</span>(<span class="nu">42</span>)
+X = np.random.<span class="fn">randn</span>(<span class="nu">100</span>, <span class="nu">1</span>)
+y = <span class="nu">3</span> * X.flatten() + <span class="nu">2</span> + np.random.<span class="fn">randn</span>(<span class="nu">100</span>) * <span class="nu">0.5</span>  <span class="cm"># True: w=3, b=2</span>
+
+model = <span class="cl">LinearRegressionGD</span>(lr=<span class="nu">0.1</span>, epochs=<span class="nu">500</span>)
+model.<span class="fn">fit</span>(X, y)
+<span class="fn">print</span>(<span class="st">f"Learned w={model.w[0]:.3f}, b={model.b:.3f}"</span>)  <span class="cm"># ~3.0, ~2.0</span>
+<span class="fn">print</span>(<span class="st">f"Final loss: {model.losses[-1]:.4f}"</span>)</pre>
+      </div>
+      <table>
+        <tr><th>Variant</th><th>Data per Update</th><th>Pros</th><th>Cons</th></tr>
+        <tr><td><strong>Batch GD</strong></td><td>Full dataset</td><td>Stable convergence</td><td>Slow on large data</td></tr>
+        <tr><td><strong>Stochastic GD (SGD)</strong></td><td>1 sample</td><td>Fast updates, escapes local minima</td><td>Noisy, high variance</td></tr>
+        <tr><td><strong>Mini-Batch GD</strong></td><td>32–256 samples</td><td>Best of both — most common in practice</td><td>Needs tuning of batch size</td></tr>
+      </table>
+      <div class="info-box tip"><strong>💡 Learning Rate is Critical</strong>
+        Too large → loss oscillates or explodes. Too small → training takes forever. Start with 0.01 or 0.001 and use a learning rate scheduler. Adam optimizer adapts the learning rate automatically.
+      </div>
+    </div>
+  </div>
+
